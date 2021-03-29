@@ -1,0 +1,1 @@
+/home/adm1g15/anaconda3/bin/train_classifiers --model ScaledMnistCNN --dataset ScaledMNIST --epochs 10 --output expt-models/scaledmnist-cls/

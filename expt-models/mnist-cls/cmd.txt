@@ -1,0 +1,1 @@
+/opt/anaconda3/bin/train_classifiers --model MnistCNN --dataset MNIST --epochs 10 --output expt-models/mnist-cls/ --dataset-root /data/

@@ -1,0 +1,14 @@
+torch>=1.7.0
+setuptools>=50.3.1
+quickdraw>=0.1.0
+numpy>=1.19.2
+pillow>=8.0.1
+tqdm>=4.54.1
+pyx>=0.15
+torchvision>=0.8.1
+matplotlib>=3.3.2
+requests>=2.25.0
+ipython>=7.19.0
+torchbearer>=0.5.3.dev0
+lpips>=0.1.2
+scikit-learn>=0.24.1

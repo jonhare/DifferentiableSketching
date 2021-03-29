@@ -1,0 +1,314 @@
+import argparse
+import importlib
+import math
+from pathlib import Path
+
+import numpy as np
+import torch
+from PIL import Image
+from torchvision.utils import save_image
+from tqdm import tqdm
+
+from dsketch.experiments.shared.args_losses import loss_choices, get_loss
+from dsketch.raster.composite import softor, over
+from dsketch.raster.disttrans import point_edt2, line_edt2
+from dsketch.raster.raster import exp
+from dsketch.utils.pyxdrawing import draw_points_lines
+
+
+def save_image(img, fp):
+    img = img.squeeze(0).detach()  # remove batch dim
+
+    Path(fp).parent.mkdir(parents=True, exist_ok=True)
+    if img.shape[0] == 1:
+        img = 1 - img  # always invert so it's black lines on white
+        img2 = torch.cat([img] * 3, dim=0)
+    else:
+        img2 = 1 - img  # always invert so it's black lines on white
+        # img2[2, :, :] = 1 - img2[2, :, :]  # always invert so it's black lines on white
+
+    # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+    ndarr = img2.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+
+    # if img.shape[0] == 1:
+    im = Image.fromarray(ndarr)
+    # else:
+    #     im = Image.fromarray(ndarr, "HSV").convert("RGB")
+    im.save(fp, format=None)
+
+
+def save_pdf(params, cparams, args, file):
+    Path(file).parent.mkdir(parents=True, exist_ok=True)
+    params = params.detach().cpu()
+    if cparams is not None:
+        cparams = cparams.detach().cpu()
+        cparams = 1 - cparams
+        # cparams[:, 2] = 1 - cparams[:, 2]
+        # ndarr = cparams.unsqueeze(0).mul(255).add_(0.5).clamp_(0, 255).to('cpu', torch.uint8).numpy()
+        # cparams = torch.from_numpy(np.array(Image.fromarray(ndarr, "HSV").convert("RGB"), dtype=np.float32) / 255.)[0]
+
+    pparams = None
+    cpparams = None
+    lparams = None
+    clparams = None
+
+    lw = math.sqrt(args.sigma2_current / args.sf) / 0.54925
+    # lw = 2
+
+    if args.points > 0:
+        pparams = params[0:2 * args.points].view(-1, 2)
+        pparams[:, 0] = args.target_shape[-2] * (pparams[:, 0] + args.grid_row_extent) / (2 * args.grid_row_extent)
+        pparams[:, 1] = args.target_shape[-1] * (pparams[:, 1] + args.grid_col_extent) / (2 * args.grid_col_extent)
+
+        if cparams is not None:
+            cpparams = cparams[:args.points]
+
+    if args.lines > 0:
+        lparams = params[2 * args.points:].view(-1, 2, 2)
+        lparams[:, 0, 0] = args.target_shape[-2] * (lparams[:, 0, 0] + args.grid_row_extent) / (
+                2 * args.grid_row_extent)
+        lparams[:, 0, 1] = args.target_shape[-1] * (lparams[:, 0, 1] + args.grid_col_extent) / (
+                2 * args.grid_col_extent)
+        lparams[:, 1, 0] = args.target_shape[-2] * (lparams[:, 1, 0] + args.grid_row_extent) / (
+                2 * args.grid_row_extent)
+        lparams[:, 1, 1] = args.target_shape[-1] * (lparams[:, 1, 1] + args.grid_col_extent) / (
+                2 * args.grid_col_extent)
+
+        if cparams is not None:
+            clparams = cparams[args.points:]
+
+    draw_points_lines(pparams, lparams, file, lw=lw, pcols=cpparams, lcols=clparams)
+
+
+def make_optimiser(args, params, cparams=None):
+    module = importlib.import_module('torch.optim')
+    opt = getattr(module, args.optimiser)
+    p = [params]
+    if cparams is not None:
+        p.append(cparams)
+    return opt(p, lr=args.lr)
+
+
+def optimise(target, params, cparams, render_fn, args):
+    params.requires_grad = True
+    if cparams is not None:
+        cparams.requires_grad = True
+
+    sigma2 = args.init_sigma2
+
+    loss_fn = get_loss(args.loss)(args)
+    optim = make_optimiser(args, params, cparams)
+
+    itr = tqdm(range(args.iters))
+    for i in itr:
+        optim.zero_grad()
+
+        est = render_fn(params, cparams, sigma2)
+        lss = loss_fn(est, target)
+        lss.backward()
+        optim.step()
+        params = clamp_params(params, args)
+        if cparams is not None:
+            clamp_colour_params(cparams)
+
+        if i % args.sigma2_step == 0:
+            sigma2 = sigma2 * args.sigma2_factor
+            if sigma2 < args.final_sigma2:
+                sigma2 = args.final_sigma2
+
+        args.sigma2_current = sigma2
+        itr.set_postfix({'loss': lss.item(), 'sigma^2': sigma2})
+
+        if args.snapshots_path is not None and i % args.snapshots_steps == 0:
+            ras = render_fn(params, cparams, sigma2)
+            save_image(ras.detach().cpu(), args.snapshots_path + "/snapshot_" + str(i) + ".png")
+            save_pdf(params, cparams, args, args.snapshots_path + "/snapshot_" + str(i) + ".pdf")
+
+    return params
+
+
+def render_points(params, sigma2, grid):
+    return exp(point_edt2(params, grid), sigma2).unsqueeze(0)
+
+
+def render_lines(params, sigma2, grid):
+    return exp(line_edt2(params, grid), sigma2).unsqueeze(0)
+
+
+def clamp_params(params, args):
+    if args.points > 0:
+        pparams = params[0:2 * args.points].view(-1, 2).data
+        pparams[:, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
+        pparams[:, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
+
+    if args.lines > 0:
+        lparams = params[2 * args.points:].view(-1, 2, 2).data
+        lparams[:, 0, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
+        lparams[:, 1, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
+        lparams[:, 0, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
+        lparams[:, 1, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
+
+    return params
+
+
+def clamp_colour_params(params):
+    # params[params[:, 0] < 0, 0] += 1
+    # params[params[:, 0] > 1, 0] -= 1
+    params.data.clamp_(0, 1)
+
+
+def render(params, cparams, sigma2, grid, args):
+    ras = []
+
+    if args.points > 0:
+        pparams = params[0:2 * args.points].view(-1, 2)
+        pts = render_points(pparams, sigma2, grid)
+        ras.append(pts)
+
+    if args.lines > 0:
+        lparams = params[2 * args.points:].view(-1, 2, 2)
+        lns = render_lines(lparams, sigma2, grid)
+        ras.append(lns)
+
+    ras = torch.cat(ras, dim=0)  # [1, nprim, row, col]
+
+    if cparams is not None:
+        ras = ras.unsqueeze(2)  # [1, nprim, 1, row, col]
+        ras = ras.repeat_interleave(3, dim=2)  # [1, nprim, 3, row, col]
+        lab = cparams.unsqueeze(-1).unsqueeze(-1)  # npts, 4, 1, 1
+        ras = lab * ras
+        return over(ras, dim=1, keepdim=False)
+        # return over_recursive(ras, dim=1)
+
+    return softor(ras, dim=1, keepdim=True)
+
+
+def make_init_params(args, img):
+    torch.random.manual_seed(args.seed)
+
+    pparams = torch.rand((args.points, 2), device=args.device)
+    pparams[:, 0] = 2 * (pparams[:, 0] - 0.5) * args.grid_row_extent
+    pparams[:, 1] = 2 * (pparams[:, 1] - 0.5) * args.grid_col_extent
+    pparams = pparams.view(-1)
+
+    lparams = torch.rand((args.lines, 2, 2), device=args.device)
+    lparams[:, 0, 0] -= 0.5
+    lparams[:, 0, 1] -= 0.5
+    lparams[:, 0, 0] *= 2 * args.grid_row_extent
+    lparams[:, 0, 1] *= 2 * args.grid_col_extent
+    lparams[:, 1, 0] = lparams[:, 0, 0] + 0.2 * (lparams[:, 1, 0] - 0.5)
+    lparams[:, 1, 1] = lparams[:, 0, 1] + 0.2 * (lparams[:, 1, 1] - 0.5)
+    lparams = lparams.view(-1)
+
+    return clamp_params(torch.cat((pparams, lparams), dim=0), args)
+
+
+def add_shared_args(parser):
+    parser.add_argument("image", help="path to image", type=str)
+    parser.add_argument("--width", type=int,
+                        help="Width to scale input to for optimisation (aspect ratio is preserved).")
+    parser.add_argument("--lines", type=int, required=False, default=0, help="number of line segments.")
+    parser.add_argument("--points", type=int, required=False, default=0, help="number of points.")
+    parser.add_argument("--loss", choices=loss_choices(), required=True, help="loss function")
+    parser.add_argument("--iters", type=int, required=False, help="number of iterations.", default=8000)
+    parser.add_argument("--init-sigma2", type=float, required=False, help="initial sigma^2.", default=0.55 ** 2)
+    parser.add_argument("--final-sigma2", type=float, required=False, help="final sigma^2.", default=0.55 ** 2)
+    parser.add_argument("--sigma2-factor", type=float, required=False,
+                        help="factor to multiply sigma^2 by every sigma2-step.", default=0.5)
+    parser.add_argument("--sigma2-step", type=int, required=False,
+                        help="number of iterations between changes in sigma^2", default=100)
+    parser.add_argument("--seed", type=int, required=False, help="seed for initial params", default=1)
+
+    parser.add_argument("--lr", type=float, required=False, help="learning rate", default=1e-2)
+
+    parser.add_argument("--init-raster", type=str, required=False, help="path to save initial raster")
+    parser.add_argument("--init-pdf", type=str, required=False, help="path to save initial pdf")
+
+    parser.add_argument("--final-raster", type=str, required=False, help="path to save final raster")
+    parser.add_argument("--final-pdf", type=str, required=False, help="path to save final pdf")
+
+    parser.add_argument("--snapshots-path", type=str, required=False, help="path to save snapshots")
+    parser.add_argument("--snapshots-steps", type=int, required=False, help="snapshots interval",
+                        default=1000)
+
+    parser.add_argument("--invert", action='store_true', required=False, help="should that target image be inverted?")
+    parser.add_argument("--optimiser", type=str, required=False, help="torch.optim class to use for optimisation",
+                        default='Adam')
+    parser.add_argument("--device", help='device to use', required=False, type=str,
+                        default='cuda:0' if torch.cuda.is_available() else 'cpu')
+    parser.add_argument("--colour", action='store_true', required=False, help="optimise a colour image")
+
+
+def main():
+    fake_parser = argparse.ArgumentParser(add_help=False)
+    add_shared_args(fake_parser)
+
+    fake_args, _ = fake_parser.parse_known_args()
+
+    parser = argparse.ArgumentParser()
+    add_shared_args(parser)
+    get_loss(fake_args.loss).add_args(parser)
+
+    args = parser.parse_args()
+
+    target = Image.open(args.image)
+
+    if args.width:
+        basewidth = args.width
+        wpercent = (basewidth / float(target.size[0]))
+        hsize = int((float(target.size[1]) * float(wpercent)))
+        target = target.resize((basewidth, hsize), Image.ANTIALIAS)
+
+    if args.colour:
+        args.channels = 3
+        # target = np.array(target.convert("HSV"), dtype=np.float32) / 255.
+        target = np.array(target.convert("RGB"), dtype=np.float32) / 255.
+        target = torch.from_numpy(target).to(args.device).unsqueeze(0).permute(0, 3, 1, 2)  # 1CHW
+        cparams = torch.rand((args.points + args.lines, 3), device=args.device)
+
+        target = 1 - target
+        # target[:, 2, :, :] = 1 - target[:, 2, :, :]  # invert the brightness channel
+    else:
+        args.channels = 1
+        target = np.array(target.convert("L"), dtype=np.float32) / 255.
+        target = torch.from_numpy(target).to(args.device).unsqueeze(0).unsqueeze(0)  # 1CHW
+        cparams = None
+
+        if args.invert:
+            target = 1 - target
+
+    args.target_shape = target.shape
+    args.grid_row_extent = 1
+    args.grid_col_extent = target.shape[-1] / target.shape[-2]
+
+    r = torch.linspace(-args.grid_row_extent, args.grid_row_extent, target.shape[-2])
+    c = torch.linspace(-args.grid_col_extent, args.grid_col_extent, target.shape[-1])
+    grid = torch.meshgrid(r, c)
+    grid = torch.stack(grid, dim=2).to(args.device)
+
+    # scale the sigmas to match the grid defined above, rather than being relative to 1 pixel
+    args.sf = (2 / target.shape[-2]) ** 2
+    args.init_sigma2 = args.init_sigma2 * args.sf
+    args.final_sigma2 = args.final_sigma2 * args.sf
+    args.sigma2_current = args.init_sigma2
+
+    params = make_init_params(args, target)
+
+    def r(p, cp, s):
+        return render(p, cp, s, grid, args)
+
+    if args.init_raster is not None:
+        ras = r(params, cparams, args.final_sigma2)
+        save_image(ras.detach().cpu(), args.init_raster)
+
+    if args.init_pdf is not None:
+        save_pdf(params, cparams, args, args.init_pdf)
+
+    params = optimise(target, params, cparams, r, args)
+
+    if args.final_raster is not None:
+        ras = r(params, cparams, args.final_sigma2)
+        save_image(ras.detach().cpu(), args.final_raster)
+
+    if args.final_pdf is not None:
+        save_pdf(params, cparams, args, args.final_pdf)
