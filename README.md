@@ -13,7 +13,7 @@ This repository contains the __official__ implementation of the paper ['Differen
   <a href="#experiments">Experiments</a> 
 </p>
 
-<img src="results/vancouver/final-800.png"/>
+<img src="results/vancouver/final-800px.png"/>
 </a>
 
 </div>
