@@ -1,23 +1,19 @@
 <div align="center">
   
-# Differentiable Sketching
+# Differentiable Drawing and Sketching
 
-This repository contains the __official__ implementation of the paper ['Differentiable Drawing and Sketching.'](https://arxiv.org/abs/XXX)
+This repository contains the __official__ implementation of the paper ['Differentiable Drawing and Sketching.'](https://arxiv.org/abs/2103.16194)
 
 
 <p align="center">
-  <a href="https://arxiv.org/abs/XXX">ArXiv</a> •
+  <a href="https://arxiv.org/abs/2103.16194">ArXiv</a> •
   <a href="https://paperswithcode.com/paper/differentiable-drawing-and-sketching">Papers With Code</a> •
   <a href="#about">About</a> •
   <a href="#usage">Usage</a> •
   <a href="#experiments">Experiments</a> 
 </p>
 
-<!-- <a href="https://colab.research.google.com/github/ecs-vlc/fmix/blob/master/notebooks/example_masks.ipynb">
-<img src="http://www.pytorchbearer.org/assets/img/colab_logo.png" height="28">
-
-Dive in with our example notebook in Colab!
- -->  
+<img src="results/vancouver/final-800.png"/>
 </a>
 
 </div>
