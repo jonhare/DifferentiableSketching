@@ -16,10 +16,11 @@ from dsketch.experiments.shared.utils import list_class_names
 
 
 def skeleton(image):
+    image = np.asarray(image)
     thresh = threshold_otsu(image)
     binary = image > thresh
     out = binary_closing(skeletonize(binary))
-    return out
+    return Image.fromarray(out)
 
 
 def _split(args, trainset):
