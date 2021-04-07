@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from PIL import Image
 from skimage.filters import threshold_otsu
-from skimage.morphology import skeletonize, binary_closing
+from skimage.morphology import skeletonize
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -19,7 +19,8 @@ def skeleton(image):
     image = np.asarray(image)
     thresh = threshold_otsu(image)
     binary = image > thresh
-    out = binary_closing(skeletonize(binary))
+    # out = binary_closing(skeletonize(binary))
+    out = skeletonize(binary)
     return Image.fromarray(out)
 
 
