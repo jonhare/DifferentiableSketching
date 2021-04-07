@@ -5,12 +5,21 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from PIL import Image
+from skimage.filters import threshold_otsu
+from skimage.morphology import skeletonize, binary_closing
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import MNIST, Omniglot
 
 from dsketch.experiments.shared.utils import list_class_names
+
+
+def skeleton(image):
+    thresh = threshold_otsu(image)
+    binary = image > thresh
+    out = binary_closing(skeletonize(binary))
+    return out
 
 
 def _split(args, trainset):
@@ -35,6 +44,8 @@ class _Dataset(ABC):
         cls._add_args(p)
         p.add_argument("--batch-size", help="batch size", type=int, default=48, required=False)
         p.add_argument("--num-workers", help="number of dataloader workers", type=int, default=4, required=False)
+        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
+                       default=False, required=False, action='store_true')
 
     @staticmethod
     @abstractmethod
@@ -80,6 +91,8 @@ class MNISTDataset(_Dataset):
 
     @classmethod
     def get_transforms(cls, args, train=False):
+        if args.skeleton:
+            return transforms.Compose([skeleton, transforms.ToTensor])
         return transforms.ToTensor()
 
     @classmethod
@@ -107,13 +120,17 @@ class ScaledMNISTDataset(MNISTDataset):
         # MNIST preprocess following StrokeNet code
         mnist_resize = 120
         brightness = 0.6
-        tf = transforms.Compose(transforms=[
+        tf = [
             transforms.Resize(mnist_resize),
             transforms.Pad(int((256 - mnist_resize) / 2)),
             transforms.ToTensor(),
             lambda x: x * brightness
-        ])
-        return tf
+        ]
+
+        if transforms.skeleton:
+            tf.insert(2, skeleton)
+
+        return transforms.Compose(transforms=tf)
 
     @classmethod
     def get_size(cls, args):
@@ -142,6 +159,9 @@ class OmniglotDataset(_Dataset):
         if train is True and args.augment is True:
             tf.insert(0,
                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
+
+        if transforms.skeleton:
+            tf.insert(0, skeleton)
 
         return transforms.Compose(tf)
 
@@ -185,6 +205,9 @@ class C28pxOmniglotDataset(OmniglotDataset):
         if train is True and args.augment is True:
             tf.insert(2,
                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
+
+        if transforms.skeleton:
+            tf.insert(2, skeleton)
 
         return transforms.Compose(tf)
 

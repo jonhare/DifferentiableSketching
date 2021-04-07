@@ -12,3 +12,4 @@ ipython>=7.19.0
 torchbearer>=0.5.3.dev0
 lpips>=0.1.2
 scikit-learn>=0.24.1
+scikit-image~=0.17.2
