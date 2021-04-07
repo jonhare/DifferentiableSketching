@@ -93,7 +93,7 @@ class MNISTDataset(_Dataset):
     @classmethod
     def get_transforms(cls, args, train=False):
         if args.skeleton:
-            return transforms.Compose([skeleton, transforms.ToTensor])
+            return transforms.Compose([skeleton, transforms.ToTensor()])
         return transforms.ToTensor()
 
     @classmethod
