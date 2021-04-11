@@ -13,6 +13,7 @@ setup(
         'console_scripts': ['imageopt=dsketch.experiments.imageopt.imageopt:main',
                             'autoencoder-experiment=dsketch.experiments.characters.autoencoder:main',
                             'train_classifiers=dsketch.experiments.classifiers.train:main',
+                            'train_classifiers_barlow=dsketch.experiments.classifiers.train_barlow:main',
                             'evaluate_one_shot=dsketch.experiments.classifiers.evaluate_one_shot:main']
     }
 )
