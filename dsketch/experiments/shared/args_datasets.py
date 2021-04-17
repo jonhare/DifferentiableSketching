@@ -129,7 +129,7 @@ class ScaledMNISTDataset(MNISTDataset):
             lambda x: x * brightness
         ]
 
-        if transforms.skeleton:
+        if args.skeleton:
             tf.insert(2, skeleton)
 
         return transforms.Compose(transforms=tf)
@@ -162,7 +162,7 @@ class OmniglotDataset(_Dataset):
             tf.insert(0,
                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
 
-        if transforms.skeleton:
+        if args.skeleton:
             tf.insert(0, skeleton)
 
         return transforms.Compose(tf)
@@ -208,7 +208,7 @@ class C28pxOmniglotDataset(OmniglotDataset):
             tf.insert(2,
                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
 
-        if transforms.skeleton:
+        if args.skeleton:
             tf.insert(2, skeleton)
 
         return transforms.Compose(tf)

@@ -137,6 +137,7 @@ def main():
     btmodel_loss = BarlowTwinsLoss()
 
     train(args, btmodel, btmodel_loss, trainloader, valloader, args.barlow_epochs, name='btmodel')
+
     model.lock_features(not args.finetune)
 
     trainloader, valloader, testloader = get_dataset(args.dataset).create(args)  # reload data with other batch size
