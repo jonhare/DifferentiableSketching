@@ -166,12 +166,12 @@ class _BetterCNN(nn.Module):
         return x
 
 
-class MNISTBetterCNN(nn.Module):
+class MNISTBetterCNN(_BetterCNN):
     def __init__(self):
         super().__init__(10)
 
 
-class OmniglotBetterCNN(nn.Module):
+class OmniglotBetterCNN(_BetterCNN):
     def __init__(self):
         super().__init__(964)
 
