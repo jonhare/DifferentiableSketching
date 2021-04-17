@@ -24,6 +24,7 @@ from .train import add_sub_args
 def add_shared_args(parser):
     default_add_shared_args(parser)
     parser.add_argument("--barlow-epochs", default=10, help="number of epochs for barlow twins SSL.", type=int)
+    parser.add_argument("--barlow-batch-size", default=1024, help="Barlow twins SSL batch size.", type=int)
     parser.add_argument("--finetune", default=False, help="Should the bbackbone be finetuned after barlow SSL",
                         action='store_true')
 
@@ -121,7 +122,10 @@ def main():
     add_sub_args(fake_args, parser)
     args = parser.parse_args()
 
+    orig_batch_size = args.batch_size
+    args.batch_size = args.barlow_batch_size
     trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
+    args.batch_size = orig_batch_size
 
     args.output.mkdir(exist_ok=True, parents=True)
     save_args(args.output)
@@ -134,6 +138,8 @@ def main():
 
     train(args, btmodel, btmodel_loss, trainloader, valloader, args.barlow_epochs, name='btmodel')
     model.lock_features(not args.finetune)
+
+    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)  # reload data with other batch size
     train(args, model, model_loss, trainloader, valloader, args.epochs, name='model')
 
     trial = tb.Trial(model, criterion=torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc'],
