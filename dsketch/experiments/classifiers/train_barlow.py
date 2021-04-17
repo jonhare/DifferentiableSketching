@@ -79,7 +79,7 @@ class BarlowTwinsLoss:
         return loss
 
 
-def train(args, model, model_loss, trainloader, valloader, name='model'):
+def train(args, model, model_loss, trainloader, valloader, epochs, name='model'):
     init_lr, sched = parse_learning_rate_arg(args.learning_rate)
     path = str(args.output)
 
@@ -98,7 +98,7 @@ def train(args, model, model_loss, trainloader, valloader, name='model'):
     trial = tb.Trial(model, opt, model_loss, metrics=metrics,
                      callbacks=callbacks).to(args.device)
     trial.with_generators(train_generator=trainloader, val_generator=valloader)
-    trial.run(epochs=args.epochs, verbose=2)
+    trial.run(epochs=epochs, verbose=2)
     return trial
 
 
@@ -132,9 +132,9 @@ def main():
     model_loss = nn.CrossEntropyLoss()
     btmodel_loss = BarlowTwinsLoss()
 
-    train(args, btmodel, btmodel_loss, trainloader, valloader, name='btmodel')
+    train(args, btmodel, btmodel_loss, trainloader, valloader, args.barlow_epochs, name='btmodel')
     model.lock_features(not args.finetune)
-    train(args, model, model_loss, trainloader, valloader, name='model')
+    train(args, model, model_loss, trainloader, valloader, args.epochs, name='model')
 
     trial = tb.Trial(model, criterion=torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc'],
                      callbacks=[CSVLogger(str(args.output) + '/test-log.csv')]).to(args.device)
