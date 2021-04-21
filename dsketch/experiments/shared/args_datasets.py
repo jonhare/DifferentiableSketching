@@ -46,8 +46,6 @@ class _Dataset(ABC):
         cls._add_args(p)
         p.add_argument("--batch-size", help="batch size", type=int, default=48, required=False)
         p.add_argument("--num-workers", help="number of dataloader workers", type=int, default=4, required=False)
-        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
-                       default=False, required=False, action='store_true')
 
     @staticmethod
     @abstractmethod
@@ -90,6 +88,8 @@ class MNISTDataset(_Dataset):
                        type=int, default=10, required=False)
         p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
                        default=1234, required=False)
+        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
+                       default=False, required=False, action='store_true')
 
     @classmethod
     def get_transforms(cls, args, train=False):
@@ -150,6 +150,8 @@ class OmniglotDataset(_Dataset):
         p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
                        default=1234, required=False)
         p.add_argument("--augment", help="add augmentation", default=False, required=False, action='store_true')
+        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
+                       default=False, required=False, action='store_true')
 
     @classmethod
     def get_size(cls, args):
