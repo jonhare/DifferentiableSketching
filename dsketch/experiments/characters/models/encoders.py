@@ -29,46 +29,37 @@ class SimpleMLPEncoder(Encoder):
     
 class Conv2DEncoder(Encoder):
     def __init__(self, channels, latent_size=64):
-        super().__init__()
-        
+        super().__init__(channels)
+
         self.enc = nn.Sequential(
-            nn.Conv2d(1, 10, kernel_size=5),
+            nn.Conv2d(channels, 10, kernel_size=5),
             nn.MaxPool2d(2),
             nn.ReLU(inplace=True),
             nn.Conv2d(10, 20, kernel_size=5),
             nn.Dropout2d(),
             nn.MaxPool2d(2),
-            nn.ReLU(inplace=True)           
+            nn.ReLU(inplace=True)
         )
-        
-#         self.fc1 = nn.Linear(320, latent_size) #320 for normal size MNIST, 74420 for scaled-up MNIST
-#         self.fc2 = nn.Linear(hidden1, latent_size)
-#         self.relu = nn.ReLU()
-        
-        
+
     @staticmethod
     def _add_args(p):
-#         p.add_argument("--convEncoder-hidden1", help="Conv2D encoder hidden1", type=int, default=16384,
-#                        required=False)
         p.add_argument("--encoder-channels", help="encoder input channels", type=int, default=1,
                        required=False)
-        
+
     @staticmethod
     def create(args):
         return Conv2DEncoder(channels=args.encoder_channels, latent_size=args.latent_size)
-    
+
     def forward(self, inp, state=None):
         inp = self.enc(inp)        
         inp = inp.view(inp.shape[0], -1)
-#         inp = self.relu(self.fc1(inp))
 
         return inp
-    
-                   
-    
+
+
 class StrokeNetEncoder(Encoder):
     def __init__(self, channels=3, latent_size=1024, batchnorm=False):
-        super().__init__()
+        super().__init__(channels)
 
         self.enc = AgentCNN(channels, batchnorm)
         self.fc = nn.Linear(16384, latent_size)  # hardcoded to match the dimensionality from strokeNet paper

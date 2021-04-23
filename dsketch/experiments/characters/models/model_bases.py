@@ -38,6 +38,10 @@ class _Base(nn.Module, ABC):
 
 
 class Encoder(_Base, ABC):
+    def __init__(self, channels=1):
+        super().__init__()
+        self.channels = channels
+
     @classmethod
     def add_args(cls, p):
         cls._add_args(p)
