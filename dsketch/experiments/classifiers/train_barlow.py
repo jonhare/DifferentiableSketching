@@ -112,7 +112,7 @@ def main():
     args = parser.parse_args()
 
     rndtf = transforms.Compose([
-        transforms.RandomAffine(10.0, translate=(0.1, 0.1), scale=(0.95, 1.01), shear=1),
+        transforms.RandomAffine(10.0, translate=(0.1, 0.1), scale=(0.95, 1.01), shear=1, fillcolor=None),
         transforms.Lambda(lambda x: x * (1 + (torch.rand_like(x) - 0.5) / 10))
     ])
     args.additional_transforms = transforms.Lambda(lambda x: (rndtf(x), rndtf(x)))
