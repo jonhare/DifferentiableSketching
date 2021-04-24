@@ -42,9 +42,7 @@ def _split(args, trainset):
     train = torch.utils.data.Subset(trainset, train_idx)
     valid = torch.utils.data.Subset(trainset, valid_idx)
 
-    trainloader = DataLoader(train, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
-    valloader = DataLoader(valid, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
-    return trainloader, valloader
+    return train, valid
 
 
 class _Dataset(ABC):
@@ -113,10 +111,9 @@ class MNISTDataset(_Dataset):
         trainset = MNIST(args.dataset_root, train=True, transform=cls.get_transforms(args, True), download=True)
         testset = MNIST(args.dataset_root, train=False, transform=cls.get_transforms(args, False), download=True)
 
-        trainloader, valloader = _split(args, trainset)
-        testloader = DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+        train, valid = _split(args, trainset)
 
-        return trainloader, valloader, testloader
+        return train, valid, testset
 
     @classmethod
     def inv_transform(cls, x):
@@ -186,10 +183,9 @@ class OmniglotDataset(_Dataset):
         testset = Omniglot(args.dataset_root, background=False, transform=cls.get_transforms(args, False),
                            download=True)
 
-        trainloader, valloader = _split(args, trainset)
-        testloader = DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+        train, valid = _split(args, trainset)
 
-        return trainloader, valloader, testloader
+        return train, valid, testset
 
 
 def _centre_pil_image(pil):
@@ -233,7 +229,14 @@ def get_dataset(name):
 def build_dataloaders(args):
     ds = get_dataset(args.dataset)
     args.size = ds.get_size(args)
-    return ds.create(args)
+
+    train, valid, test = ds.create(args)
+
+    trainloader = DataLoader(train, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
+    valloader = DataLoader(valid, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+    testloader = DataLoader(test, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+
+    return trainloader, valloader, testloader
 
 
 def dataset_choices():

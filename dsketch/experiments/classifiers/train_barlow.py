@@ -15,7 +15,7 @@ from torchbearer.callbacks.csv_logger import CSVLogger
 from torchvision import transforms
 
 from dsketch.experiments.classifiers.models import get_model
-from dsketch.experiments.shared.args_datasets import get_dataset
+from dsketch.experiments.shared.args_datasets import build_dataloaders
 from dsketch.experiments.shared.utils import FakeArgumentParser, save_args, parse_learning_rate_arg
 from .train import add_shared_args as default_add_shared_args
 from .train import add_sub_args
@@ -119,7 +119,7 @@ def main():
 
     orig_batch_size = args.batch_size
     args.batch_size = args.barlow_batch_size
-    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
+    trainloader, valloader, testloader = build_dataloaders(args)
     args.batch_size = orig_batch_size
 
     args.output.mkdir(exist_ok=True, parents=True)
@@ -135,7 +135,7 @@ def main():
 
     model.lock_features(not args.finetune)
 
-    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)  # reload data with other batch size
+    trainloader, valloader, testloader = build_dataloaders(args)  # reload data with other batch size
     train(args, model, model_loss, trainloader, valloader, args.epochs, name='model')
 
     trial = tb.Trial(model, criterion=torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc'],

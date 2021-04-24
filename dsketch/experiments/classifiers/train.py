@@ -8,7 +8,7 @@ from torchbearer.callbacks.checkpointers import Interval, MostRecent
 from torchbearer.callbacks.csv_logger import CSVLogger
 
 from dsketch.experiments.classifiers.models import get_model, model_choices
-from dsketch.experiments.shared.args_datasets import get_dataset, dataset_choices
+from dsketch.experiments.shared.args_datasets import get_dataset, dataset_choices, build_dataloaders
 from dsketch.experiments.shared.utils import FakeArgumentParser, save_args, parse_learning_rate_arg
 
 
@@ -42,7 +42,7 @@ def main():
     add_sub_args(fake_args, parser)
     args = parser.parse_args()
 
-    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
+    trainloader, valloader, testloader = build_dataloaders(args)
 
     args.output.mkdir(exist_ok=True, parents=True)
     path = str(args.output)
