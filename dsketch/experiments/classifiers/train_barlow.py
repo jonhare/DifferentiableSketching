@@ -111,16 +111,16 @@ def main():
     add_sub_args(fake_args, parser)
     args = parser.parse_args()
 
-    orig_batch_size = args.batch_size
-    args.batch_size = args.barlow_batch_size
-    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
-    args.batch_size = orig_batch_size
-
     rndtf = transforms.Compose([
         transforms.RandomAffine(10.0, translate=(0.1, 0.1), scale=(0.95, 1.01), shear=1),
         transforms.Lambda(lambda x: x * (1 + (torch.rand_like(x) - 0.5) / 10))
     ])
     args.additional_transforms = transforms.Lambda(lambda x: (rndtf(x), rndtf(x)))
+
+    orig_batch_size = args.batch_size
+    args.batch_size = args.barlow_batch_size
+    trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
+    args.batch_size = orig_batch_size
 
     args.output.mkdir(exist_ok=True, parents=True)
     save_args(args.output)
