@@ -15,6 +15,13 @@ from torchvision.datasets import MNIST, Omniglot
 from dsketch.experiments.shared.utils import list_class_names
 
 
+def compose(tf, args):
+    if 'additional_transforms' in args and args.additional_transforms is not None:
+        return transforms.Compose([tf, args.additional_transforms])
+    else:
+        return tf
+
+
 def skeleton(image):
     image = np.asarray(image)
     thresh = threshold_otsu(image)
@@ -94,8 +101,8 @@ class MNISTDataset(_Dataset):
     @classmethod
     def get_transforms(cls, args, train=False):
         if args.skeleton:
-            return transforms.Compose([skeleton, transforms.ToTensor()])
-        return transforms.ToTensor()
+            return compose(transforms.Compose([skeleton, transforms.ToTensor()]), args)
+        return compose(transforms.ToTensor(), args)
 
     @classmethod
     def get_size(cls, args):
@@ -132,7 +139,7 @@ class ScaledMNISTDataset(MNISTDataset):
         if args.skeleton:
             tf.insert(2, skeleton)
 
-        return transforms.Compose(transforms=tf)
+        return compose(transforms.Compose(transforms=tf), args)
 
     @classmethod
     def get_size(cls, args):
@@ -167,7 +174,7 @@ class OmniglotDataset(_Dataset):
         if args.skeleton:
             tf.insert(0, skeleton)
 
-        return transforms.Compose(tf)
+        return compose(transforms.Compose(tf), args)
 
     @classmethod
     def inv_transform(cls, x):
@@ -213,7 +220,7 @@ class C28pxOmniglotDataset(OmniglotDataset):
         if args.skeleton:
             tf.insert(2, skeleton)
 
-        return transforms.Compose(tf)
+        return compose(transforms.Compose(tf), args)
 
 
 def get_dataset(name):

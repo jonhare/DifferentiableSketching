@@ -33,20 +33,9 @@ class BarlowTwinsModel(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
-        self.transforms = transforms.Compose([
-            transforms.RandomAffine(10.0, translate=(0.1, 0.1), scale=(0.95, 1.01), shear=1),
-            transforms.Lambda(lambda x: x * (1 + (torch.rand_like(x) - 0.5) / 10))
-        ])
-        # self.bn = nn.BatchNorm1d(sz, affine=False)
 
-    def augment(self, x):
-        y_a = self.transforms(x)
-        y_b = self.transforms(x)
-        return y_a, y_b
-
-    def forward(self, x):
-        # two randomly augmented versions of x
-        y_a, y_b = self.augment(x)
+    def forward(self, y_a, y_b):
+        # input is two randomly augmented versions of x
 
         # compute representations
         z_a = self.model.get_feature(y_a)  # NxD
@@ -126,6 +115,12 @@ def main():
     args.batch_size = args.barlow_batch_size
     trainloader, valloader, testloader = get_dataset(args.dataset).create(args)
     args.batch_size = orig_batch_size
+
+    rndtf = transforms.Compose([
+        transforms.RandomAffine(10.0, translate=(0.1, 0.1), scale=(0.95, 1.01), shear=1),
+        transforms.Lambda(lambda x: x * (1 + (torch.rand_like(x) - 0.5) / 10))
+    ])
+    args.additional_transforms = transforms.Lambda(lambda x: (rndtf(x), rndtf(x)))
 
     args.output.mkdir(exist_ok=True, parents=True)
     save_args(args.output)
