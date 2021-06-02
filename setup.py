@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     packages=['dsketch'],
     url='github.com/jonhare/DifferentiableSketching',
-    license='Apache 2.0',
+    license='BSD 3-Clause',
     author='Jonathon Hare <jsh2@soton.ac.uk>, Daniela Mihai <adm1g15@soton.ac.uk>',
     author_email='jsh2@soton.ac.uk',
     description='PyTorch differentiable rasterisation for lines, points and curves',
