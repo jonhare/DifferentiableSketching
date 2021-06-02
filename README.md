@@ -45,5 +45,15 @@ The [samples/](samples/) directory contains a number of jupyter notebooks demons
 ### Auto-encoders
 
 
+## Citation
 
+If you find this repository useful for your research, please use the following.
 
+	@misc{mihai2021differentiable,
+	      title={Differentiable Drawing and Sketching}, 
+	      author={Daniela Mihai and Jonathon Hare},
+	      year={2021},
+	      eprint={2103.16194},
+	      archivePrefix={arXiv},
+	      primaryClass={cs.CV}
+	}
