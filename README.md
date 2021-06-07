@@ -36,13 +36,62 @@ The [samples/](samples/) directory contains a number of jupyter notebooks demons
 
 ### Tools
 
+We've provided some simple commandline tools to perform image optimisation and run experiments from the paper.
+
 #### Image Optimisation
 
-## Experiments
+The `imageopt` tool lets you optimise an image against a set of points and line segments:
 
-### Optimisation
+    usage: imageopt [--width WIDTH] [--lines LINES] [--points POINTS] --loss
+                {BCELoss,BlurredMSELoss,DoGPyrMSELoss,LPIPSLoss,MSELoss,PyrMSELoss}
+                [--iters ITERS] [--init-sigma2 INIT_SIGMA2]
+                [--final-sigma2 FINAL_SIGMA2] [--sigma2-factor SIGMA2_FACTOR]
+                [--sigma2-step SIGMA2_STEP] [--seed SEED] [--lr LR]
+                [--init-raster INIT_RASTER] [--init-pdf INIT_PDF]
+                [--final-raster FINAL_RASTER] [--final-pdf FINAL_PDF]
+                [--snapshots-path SNAPSHOTS_PATH]
+                [--snapshots-steps SNAPSHOTS_STEPS] [--invert]
+                [--optimiser OPTIMISER] [--device DEVICE] [--colour]
+                image
 
-### Auto-encoders
+For example, the image at the top of this page was created with:
+
+	imageopt --loss LPIPSLoss --net vgg --invert --seed 1234 --width 300 --lines 2000 --init-sigma2 1.0 --final-sigma2 1.0 --iters 500 --lr 0.01 --init-raster results/vancouver/init.png --final-raster results/vancouver/final.png --init-pdf results/vancouver/init.pdf --final-pdf results/vancouver/final.pdf --snapshots-path results/vancouver data/vancouver.jpg --snapshots-steps 100 --colour
+
+#### Auto-encoder Experiments
+
+The auto-encoder experiments in the paper can be reproduced with the `autoencoder-experiment` tool, which has a `train` mode for model training:
+
+    autoencoder-experiment train [-h] [--variational] --encoder
+                                    {BetterCNNEncoder,Conv2DEncoder,SimpleCNNEncoder,SimpleMLPEncoder,StrokeNetEncoder}
+                                    --decoder
+                                    {RNNBezierDecoder,RecurrentCRSDecoder,RecurrentDecoder,RecurrentPolyConnectDecoder,RecurrentPolyLineDecoder,RecurrentSimpleLineDecoder,SinglePassBezierConnectDecoder,SinglePassCRSDecoder,SinglePassPolyConnectDecoder,SinglePassPolyLineDecoder,SinglePassSimpleBezierDecoder,SinglePassSimpleLineDecoder}
+                                    --dataset
+                                    {C28pxOmniglot,MNIST,Omniglot,ScaledMNIST}
+                                    [--num-reconstructions NUM_RECONSTRUCTIONS]
+                                    --output OUTPUT [--device DEVICE] --loss
+                                    {BCELoss,BlurredMSELoss,DoGPyrMSELoss,LPIPSLoss,MSELoss,PyrMSELoss}
+                                    [--epochs EPOCHS]
+                                    [--learning-rate LEARNING_RATE]
+                                    [--weight-decay WEIGHT_DECAY]
+                                    [--snapshot-interval SNAPSHOT_INTERVAL]
+
+
+and an `eval` mode for evaluating:
+
+    autoencoder-experiment eval [-h] [--variational] --encoder
+                                   {BetterCNNEncoder,Conv2DEncoder,SimpleCNNEncoder,SimpleMLPEncoder,StrokeNetEncoder}
+                                   --decoder
+                                   {RNNBezierDecoder,RecurrentCRSDecoder,RecurrentDecoder,RecurrentPolyConnectDecoder,RecurrentPolyLineDecoder,RecurrentSimpleLineDecoder,SinglePassBezierConnectDecoder,SinglePassCRSDecoder,SinglePassPolyConnectDecoder,SinglePassPolyLineDecoder,SinglePassSimpleBezierDecoder,SinglePassSimpleLineDecoder}
+                                   --dataset
+                                   {C28pxOmniglot,MNIST,Omniglot,ScaledMNIST}
+                                   [--num-reconstructions NUM_RECONSTRUCTIONS]
+                                   --output OUTPUT [--device DEVICE] --weights
+                                   WEIGHTS
+                                   [--classifier-weights CLASSIFIER_WEIGHTS]
+                                   [--classifier-model {LakeThesisCNN,MnistCNN,OmniglotCNN,ScaledMnistCNN}]
+
+The evaluation mode requires a pretrained classifier for measuring performance. We've provided our MNIST and Scaled-MNIST classifiers in the [expt-models](expt-models) folder. However, you can train your own classifiers with the provided `train_classifiers` tool.
 
 
 ## Citation
