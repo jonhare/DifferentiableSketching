@@ -223,10 +223,18 @@ def make_init_params(args, img):
 
     assert args.crs_points >= 2, "must be at least two crs-points"
     crsparams = torch.rand((args.crs, 2 + args.crs_points, 2), device=args.device)
-    crsparams[:, :, 0] -= 0.5
-    crsparams[:, :, 1] -= 0.5
-    crsparams[:, :, 0] *= 2 * args.grid_row_extent
-    crsparams[:, :, 1] *= 2 * args.grid_col_extent
+    crsparams[:, 0, 0] -= 0.5
+    crsparams[:, 0, 1] -= 0.5
+    crsparams[:, 0, 0] *= 2 * args.grid_row_extent
+    crsparams[:, 0, 1] *= 2 * args.grid_col_extent
+    crsparams[:, 3, 0] = crsparams[:, 0, 0] + 0.2 * (crsparams[:, 1, 0] - 0.5)
+    crsparams[:, 3, 1] = crsparams[:, 0, 1] + 0.2 * (crsparams[:, 1, 1] - 0.5)
+    
+    crsparams[:, 1, 0] = (crsparams[:, 1, 0] - 0.5) * 0.1 + crsparams[:, 0, 0]
+    crsparams[:, 1, 1] = (crsparams[:, 1, 1] - 0.5) * 0.1 + crsparams[:, 0, 1]
+    crsparams[:, 2, 0] = (crsparams[:, 2, 0] - 0.5) * 0.1 + crsparams[:, 3, 0]
+    crsparams[:, 2, 1] = (crsparams[:, 2, 1] - 0.5) * 0.1 + crsparams[:, 3, 1]
+
     crsparams = crsparams.view(-1)
 
     return clamp_params(torch.cat((pparams, lparams, crsparams), dim=0), args)
