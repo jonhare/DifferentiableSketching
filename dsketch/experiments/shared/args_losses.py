@@ -1,9 +1,9 @@
 import sys
 
+import lpips
 import torch
 import torch.nn.functional as F
 
-import lpips
 from dsketch.experiments.shared.utils import list_class_names
 from dsketch.losses import BlurredMSE, PyramidMSE, DoGPyramidMSE
 
@@ -65,8 +65,13 @@ class LPIPSLoss(_Loss):
         input2 = (input - 0.5) * 2
         target2 = (target - 0.5) * 2
 
-        input2 = torch.cat([input2] * 3, dim=0)
-        target2 = torch.cat([target2] * 3, dim=0)
+        if input2.ndim == 3:
+            input2 = input2.unsqueeze(0)
+            target2 = target2.unsqueeze(0)
+
+        if input2.shape[1] != 3:
+            input2 = torch.cat([input2] * 3, dim=1)
+            target2 = torch.cat([target2] * 3, dim=1)
 
         return self.loss(input2, target2)
 

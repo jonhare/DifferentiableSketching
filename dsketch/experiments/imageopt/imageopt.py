@@ -11,9 +11,8 @@ from tqdm import tqdm
 
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
-from dsketch.raster.disttrans import point_edt2, line_edt2
+from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, catmull_rom_spline
 from dsketch.raster.raster import exp
-from dsketch.utils.pyxdrawing import draw_points_lines
 
 
 def save_image(img, fp):
@@ -77,7 +76,7 @@ def save_pdf(params, cparams, args, file):
         if cparams is not None:
             clparams = cparams[args.points:]
 
-    draw_points_lines(pparams, lparams, file, lw=lw, pcols=cpparams, lcols=clparams)
+    # draw_points_lines(pparams, lparams, file, lw=lw, pcols=cpparams, lcols=clparams)
 
 
 def make_optimiser(args, params, cparams=None):
@@ -135,18 +134,35 @@ def render_lines(params, sigma2, grid):
     return exp(line_edt2(params, grid), sigma2).unsqueeze(0)
 
 
+def render_crs(params, sigma2, grid, coordpairs):
+    ncrs = params.shape[0]
+    crs = torch.cat((params[:, coordpairs[:, 0]],
+                     params[:, coordpairs[:, 1]],
+                     params[:, coordpairs[:, 2]],
+                     params[:, coordpairs[:, 3]]), dim=-1)  # [batch, nlines, 8]
+
+    crs = crs.view(ncrs, -1, 4, 2)
+
+    return softor(exp(curve_edt2_polyline(crs, grid, 10, cfcn=catmull_rom_spline), sigma2), dim=1).unsqueeze(0)
+
+
 def clamp_params(params, args):
     if args.points > 0:
-        pparams = params[0:2 * args.points].view(-1, 2).data
+        pparams = params[0:2 * args.points].view(args.points, 2).data
         pparams[:, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
         pparams[:, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
 
     if args.lines > 0:
-        lparams = params[2 * args.points:].view(-1, 2, 2).data
+        lparams = params[2 * args.points: 2 * args.points + 4 * args.lines].view(args.lines, 2, 2).data
         lparams[:, 0, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
         lparams[:, 1, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
         lparams[:, 0, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
         lparams[:, 1, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
+
+    if args.crs > 0:
+        crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
+        crsparams[:, :, 0].clamp_(-args.grid_row_extent, args.grid_row_extent)
+        crsparams[:, :, 1].clamp_(-args.grid_col_extent, args.grid_col_extent)
 
     return params
 
@@ -157,18 +173,23 @@ def clamp_colour_params(params):
     params.data.clamp_(0, 1)
 
 
-def render(params, cparams, sigma2, grid, args):
+def render(params, cparams, sigma2, grid, coordpairs, args):
     ras = []
 
     if args.points > 0:
-        pparams = params[0:2 * args.points].view(-1, 2)
+        pparams = params[0:2 * args.points].view(args.points, 2)
         pts = render_points(pparams, sigma2, grid)
         ras.append(pts)
 
     if args.lines > 0:
-        lparams = params[2 * args.points:].view(-1, 2, 2)
+        lparams = params[2 * args.points: 2 * args.points + 4 * args.lines].view(args.lines, 2, 2)
         lns = render_lines(lparams, sigma2, grid)
         ras.append(lns)
+
+    if args.crs > 0:
+        crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
+        crs = render_crs(crsparams, sigma2, grid, coordpairs)
+        ras.append(crs)
 
     ras = torch.cat(ras, dim=0)  # [1, nprim, row, col]
 
@@ -200,7 +221,15 @@ def make_init_params(args, img):
     lparams[:, 1, 1] = lparams[:, 0, 1] + 0.2 * (lparams[:, 1, 1] - 0.5)
     lparams = lparams.view(-1)
 
-    return clamp_params(torch.cat((pparams, lparams), dim=0), args)
+    assert args.crs_points >= 2, "must be at least two crs-points"
+    crsparams = torch.rand((args.crs, 2 + args.crs_points, 2), device=args.device)
+    crsparams[:, :, 0] -= 0.5
+    crsparams[:, :, 1] -= 0.5
+    crsparams[:, :, 0] *= 2 * args.grid_row_extent
+    crsparams[:, :, 1] *= 2 * args.grid_col_extent
+    crsparams = crsparams.view(-1)
+
+    return clamp_params(torch.cat((pparams, lparams, crsparams), dim=0), args)
 
 
 def add_shared_args(parser):
@@ -237,6 +266,9 @@ def add_shared_args(parser):
     parser.add_argument("--device", help='device to use', required=False, type=str,
                         default='cuda:0' if torch.cuda.is_available() else 'cpu')
     parser.add_argument("--colour", action='store_true', required=False, help="optimise a colour image")
+    parser.add_argument("--crs", type=int, required=False, help="number of catmull-rom splines", default=0)
+    parser.add_argument("--crs-points", type=int, required=False,
+                        help="number of catmull-rom points (excluding end control points", default=2)
 
 
 def main():
@@ -264,7 +296,7 @@ def main():
         # target = np.array(target.convert("HSV"), dtype=np.float32) / 255.
         target = np.array(target.convert("RGB"), dtype=np.float32) / 255.
         target = torch.from_numpy(target).to(args.device).unsqueeze(0).permute(0, 3, 1, 2)  # 1CHW
-        cparams = torch.rand((args.points + args.lines, 3), device=args.device)
+        cparams = torch.rand((args.points + args.lines + args.crs, 3), device=args.device)
 
         target = 1 - target
         # target[:, 2, :, :] = 1 - target[:, 2, :, :]  # invert the brightness channel
@@ -294,8 +326,14 @@ def main():
 
     params = make_init_params(args, target)
 
+    # pairs for crs splines
+    coordpairs = torch.stack([torch.arange(0, args.crs_points + 2 - 3, 1),
+                              torch.arange(1, args.crs_points + 2 - 2, 1),
+                              torch.arange(2, args.crs_points + 2 - 1, 1),
+                              torch.arange(3, args.crs_points + 2, 1)], dim=1)
+
     def r(p, cp, s):
-        return render(p, cp, s, grid, args)
+        return render(p, cp, s, grid, coordpairs, args)
 
     if args.init_raster is not None:
         ras = r(params, cparams, args.final_sigma2)
