@@ -225,8 +225,8 @@ def make_init_params(args, img):
     crsparams = torch.rand((args.crs, 2 + args.crs_points, 2), device=args.device)
     crsparams[:, :, 0] -= 0.5
     crsparams[:, :, 1] -= 0.5
-    crsparams[:, :, 0] *= 2 * args.grid_row_extent
-    crsparams[:, :, 1] *= 2 * args.grid_col_extent
+    crsparams[:, :, 0] *= 1.5 * args.grid_row_extent
+    crsparams[:, :, 1] *= 1.5 * args.grid_col_extent
     # crsparams[:, 3, 0] = crsparams[:, 0, 0] + 0.5 * (crsparams[:, 3, 0] - 0.5)
     # crsparams[:, 3, 1] = crsparams[:, 0, 1] + 0.5 * (crsparams[:, 3, 1] - 0.5)
     #
