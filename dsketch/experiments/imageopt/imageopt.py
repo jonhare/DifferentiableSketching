@@ -189,7 +189,7 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
     ras = []
 
     if type(sigma2) != torch.Tensor:
-        sigma2 = torch.ones((args.points + args.lines + args.crs), device=args.device) * sigma2
+        sigma2 = torch.ones((args.points + args.lines + args.crs, 1, 1), device=args.device) * sigma2
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
@@ -352,7 +352,7 @@ def main():
 
     sigma2params = None
     if args.opt_sigma2:
-        sigma2params = torch.ones((args.points + args.lines + args.crs),
+        sigma2params = torch.ones((args.points + args.lines + args.crs, 1, 1),
                                   device=args.device) * args.sigma2_current
 
     params = make_init_params(args, target)
