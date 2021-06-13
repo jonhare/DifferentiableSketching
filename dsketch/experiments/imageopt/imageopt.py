@@ -24,7 +24,10 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
     tmp = -1 * dt2
     tmp2 = []
     for i in range(tmp.shape[0]):
-        tmp2.append(tmp[i, :, :] / sigma2[i])
+        if tmp[i, :, :].isnan().any():
+            tmp2.append(torch.zeros_like(tmp[i, :, :]))
+        else:
+            tmp2.append(tmp[i, :, :] / sigma2[i])
     return torch.exp(torch.stack(tmp2, dim=0))
 
 
