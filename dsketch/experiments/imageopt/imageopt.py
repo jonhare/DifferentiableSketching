@@ -22,12 +22,11 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
     if type(sigma2) != torch.Tensor:
         return torch.exp(-1 * dt2 / sigma2)
 
-    with autograd.detect_anomaly():
-        tmp = -1 * dt2
-        tmp2 = []
-        for i in range(tmp.shape[0]):
-            tmp2.append(tmp[i, :, :] / sigma2[i])
-        return torch.exp(torch.stack(tmp2, dim=0))
+    tmp = -1 * dt2
+    tmp2 = []
+    for i in range(tmp.shape[0]):
+        tmp2.append(tmp[i, :, :] / sigma2[i])
+    return torch.exp(torch.stack(tmp2, dim=0))
 
 
 def save_image(img, fp):
@@ -405,7 +404,8 @@ def main():
     if args.init_pdf is not None:
         save_pdf(params, cparams, args, args.init_pdf)
 
-    params = optimise(target, params, cparams, sigma2params, r, args)
+    with autograd.detect_anomaly():
+        params = optimise(target, params, cparams, sigma2params, r, args)
 
     if args.final_raster is not None:
         ras = r(params, cparams, args.final_sigma2)
