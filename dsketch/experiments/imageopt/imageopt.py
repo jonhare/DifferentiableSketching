@@ -79,24 +79,30 @@ def save_pdf(params, cparams, args, file):
     # draw_points_lines(pparams, lparams, file, lw=lw, pcols=cpparams, lcols=clparams)
 
 
-def make_optimiser(args, params, cparams=None):
+def make_optimiser(args, params, cparams=None, sigma2params=None):
     module = importlib.import_module('torch.optim')
     opt = getattr(module, args.optimiser)
     p = [params]
     if cparams is not None:
         p.append(cparams)
+    if sigma2params is not None:
+        p.append(sigma2params)
     return opt(p, lr=args.lr)
 
 
-def optimise(target, params, cparams, render_fn, args):
+def optimise(target, params, cparams, sigma2params, render_fn, args):
     params.requires_grad = True
     if cparams is not None:
         cparams.requires_grad = True
 
-    sigma2 = args.init_sigma2
+    if sigma2params is not None:
+        sigma2params.requires_grad = True
+        sigma2 = sigma2params
+    else:
+        sigma2 = args.init_sigma2
 
     loss_fn = get_loss(args.loss)(args)
-    optim = make_optimiser(args, params, cparams)
+    optim = make_optimiser(args, params, cparams, sigma2params)
 
     itr = tqdm(range(args.iters))
     for i in itr:
@@ -110,13 +116,16 @@ def optimise(target, params, cparams, render_fn, args):
         if cparams is not None:
             clamp_colour_params(cparams)
 
-        if i % args.sigma2_step == 0:
-            sigma2 = sigma2 * args.sigma2_factor
-            if sigma2 < args.final_sigma2:
-                sigma2 = args.final_sigma2
+        if sigma2params is None:
+            if i % args.sigma2_step == 0:
+                sigma2 = sigma2 * args.sigma2_factor
+                if sigma2 < args.final_sigma2:
+                    sigma2 = args.final_sigma2
 
-        args.sigma2_current = sigma2
-        itr.set_postfix({'loss': lss.item(), 'sigma^2': sigma2})
+            args.sigma2_current = sigma2
+            itr.set_postfix({'loss': lss.item(), 'sigma^2': sigma2})
+        else:
+            itr.set_postfix({'loss': lss.item(), 'sigma^2': 'learned'})
 
         if args.snapshots_path is not None and i % args.snapshots_steps == 0:
             ras = render_fn(params, cparams, sigma2)
@@ -176,19 +185,22 @@ def clamp_colour_params(params):
 def render(params, cparams, sigma2, grid, coordpairs, args):
     ras = []
 
+    if type(sigma2) != torch.Tensor:
+        sigma2 = torch.ones((args.points + args.lines + args.crs), device=args.device) * sigma2
+
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
-        pts = render_points(pparams, sigma2, grid)
+        pts = render_points(pparams, sigma2[0:args.points], grid)
         ras.append(pts)
 
     if args.lines > 0:
         lparams = params[2 * args.points: 2 * args.points + 4 * args.lines].view(args.lines, 2, 2)
-        lns = render_lines(lparams, sigma2, grid)
+        lns = render_lines(lparams, sigma2[args.points:args.points + args.lines], grid)
         ras.append(lns)
 
     if args.crs > 0:
         crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
-        crs = render_crs(crsparams, sigma2, grid, coordpairs)
+        crs = render_crs(crsparams, sigma2[args.points + args.lines:], grid, coordpairs)
         ras.append(crs)
 
     ras = torch.cat(ras, dim=0)  # [1, nprim, row, col]
@@ -279,6 +291,7 @@ def add_shared_args(parser):
     parser.add_argument("--crs", type=int, required=False, help="number of catmull-rom splines", default=0)
     parser.add_argument("--crs-points", type=int, required=False,
                         help="number of catmull-rom points (excluding end control points", default=2)
+    parser.add_argument("--opt-sigma2", action='store_true', required=False, help="optimise widths")
 
 
 def main():
@@ -334,6 +347,11 @@ def main():
     args.final_sigma2 = args.final_sigma2 * args.sf
     args.sigma2_current = args.init_sigma2
 
+    sigma2params = None
+    if args.opt_sigma2:
+        sigma2params = torch.ones((args.points + args.lines + args.crs),
+                                  device=args.device) * args.sigma2_current
+
     params = make_init_params(args, target)
 
     # pairs for crs splines
@@ -352,7 +370,7 @@ def main():
     if args.init_pdf is not None:
         save_pdf(params, cparams, args, args.init_pdf)
 
-    params = optimise(target, params, cparams, r, args)
+    params = optimise(target, params, cparams, sigma2params, r, args)
 
     if args.final_raster is not None:
         ras = r(params, cparams, args.final_sigma2)
