@@ -25,10 +25,7 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
     tmp2 = []
     for i in range(tmp.shape[0]):
         tmp2.append(tmp[i, :, :] / sigma2[i])
-    s = torch.stack(tmp2, dim=0)
-    e = torch.exp(s)
-    print(tmp.isnan().any(), s.isnan().any(), e.isnan().any(), sigma2.isnan().any())
-    return e
+    return torch.exp(torch.stack(tmp2, dim=0))
 
 
 def save_image(img, fp):
