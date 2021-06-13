@@ -132,7 +132,7 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
             clamp_colour_params(cparams)
 
         if sigma2params is not None:
-            sigma2params.data.clamp_(1e-6, 1)
+            sigma2params.data.clamp_(1e-5, 1)
 
         if sigma2params is None:
             if i % args.sigma2_step == 0:
