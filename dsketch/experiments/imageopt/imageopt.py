@@ -139,8 +139,8 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j] = torch.rand_like(crsparams[j]) - 0.5
                     crsparams[j, :, 0] *= 2 * args.grid_row_extent
                     crsparams[j, :, 1] *= 2 * args.grid_col_extent
-                    crsparams[j, -2, 0] = crsparams[:, 1, 0] + 0.3 * crsparams[j, -2, 0]
-                    crsparams[j, -2, 1] = crsparams[:, 1, 1] + 0.3 * crsparams[j, -2, 1]
+                    crsparams[j, -2, 0] = crsparams[j, 1, 0] + 0.3 * crsparams[j, -2, 0]
+                    crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
 
             # sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2
             sigma2params.data.clamp_(1e-8, 1)
