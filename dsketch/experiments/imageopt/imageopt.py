@@ -12,7 +12,16 @@ from tqdm import tqdm
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
 from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, catmull_rom_spline
-from dsketch.raster.raster import exp
+
+
+# from dsketch.raster.raster import exp
+
+
+def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
+    tmp = -1 * dt2
+    for i in range(tmp.shape[0]):
+        tmp[i, :, :] = tmp[i, :, :] / sigma2[i]
+    return torch.exp(tmp)
 
 
 def save_image(img, fp):
@@ -191,8 +200,6 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
     if type(sigma2) != torch.Tensor:
         sigma2 = torch.ones((args.points + args.lines + args.crs, 1, 1), device=args.device) * sigma2
 
-    sigma2 = sigma2.expand(args.points + args.lines + args.crs, *args.target_shape[2:])
-
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
         pts = render_points(pparams, sigma2[0:args.points], grid)
@@ -354,7 +361,7 @@ def main():
 
     sigma2params = None
     if args.opt_sigma2:
-        sigma2params = torch.ones((args.points + args.lines + args.crs, 1, 1),
+        sigma2params = torch.ones(args.points + args.lines + args.crs,
                                   device=args.device) * args.sigma2_current
 
     params = make_init_params(args, target)
