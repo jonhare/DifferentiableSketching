@@ -132,6 +132,8 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
             clamp_colour_params(cparams)
 
         if sigma2params is not None:
+            mask = sigma2params.data < 1e-8
+            sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma / 2
             sigma2params.data.clamp_(1e-8, 1)
 
         if sigma2params is None:
