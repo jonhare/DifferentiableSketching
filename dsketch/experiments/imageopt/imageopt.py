@@ -133,7 +133,7 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
 
         if sigma2params is not None:
             mask = sigma2params.data < 1e-8
-            sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2 / 2
+            sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2 * 4
             sigma2params.data.clamp_(1e-8, 1)
 
         if sigma2params is None:
