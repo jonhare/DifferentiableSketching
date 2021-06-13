@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image
+from torch import autograd
 from torchvision.utils import save_image
 from tqdm import tqdm
 
@@ -21,11 +22,12 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
     if type(sigma2) != torch.Tensor:
         return torch.exp(-1 * dt2 / sigma2)
 
-    tmp = -1 * dt2
-    tmp2 = []
-    for i in range(tmp.shape[0]):
-        tmp2.append(tmp[i, :, :] / sigma2[i])
-    return torch.exp(torch.stack(tmp2, dim=0))
+    with autograd.detect_anomaly():
+        tmp = -1 * dt2
+        tmp2 = []
+        for i in range(tmp.shape[0]):
+            tmp2.append(tmp[i, :, :] / sigma2[i])
+        return torch.exp(torch.stack(tmp2, dim=0))
 
 
 def save_image(img, fp):
