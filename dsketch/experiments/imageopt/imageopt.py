@@ -296,6 +296,8 @@ def add_shared_args(parser):
 
     parser.add_argument("--lr", type=float, required=False, help="learning rate", default=1e-2)
 
+    parser.add_argument("--target-raster", type=str, required=False, help="path to save target raster")
+
     parser.add_argument("--init-raster", type=str, required=False, help="path to save initial raster")
     parser.add_argument("--init-pdf", type=str, required=False, help="path to save initial pdf")
 
@@ -359,6 +361,9 @@ def main():
 
         if args.invert:
             target = 1 - target
+
+    if args.target_raster is not None:
+        save_image(target, args.target_raster)
 
     args.target_shape = target.shape
     args.grid_row_extent = 1
