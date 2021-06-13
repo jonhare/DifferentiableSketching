@@ -133,7 +133,14 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
 
         if sigma2params is not None:
             mask = sigma2params.data < 1e-8
-            sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2 * 4
+            crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
+            for j in len(mask):
+                if mask[j]:
+                    crsparams[j] = torch.rand_like(crsparams[j]) - 0.5
+                    crsparams[j, :, 0] *= 2 * args.grid_row_extent
+                    crsparams[j, :, 1] *= 2 * args.grid_col_extent
+
+            # sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2
             sigma2params.data.clamp_(1e-8, 1)
 
         if sigma2params is None:
