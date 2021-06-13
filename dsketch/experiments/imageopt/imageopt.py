@@ -234,8 +234,8 @@ def make_init_params(args, img):
     # crsparams[:, 1, 1] = (crsparams[:, 1, 1] - 0.5) * 0.2 + crsparams[:, 0, 1]
     # crsparams[:, 2, 0] = (crsparams[:, 2, 0] - 0.5) * 0.2 + crsparams[:, 3, 0]
     # crsparams[:, 2, 1] = (crsparams[:, 2, 1] - 0.5) * 0.2 + crsparams[:, 3, 1]
-    crsparams[:, 2, 0] = crsparams[:, 1, 0] + 0.4 * crsparams[:, 2, 0]
-    crsparams[:, 2, 1] = crsparams[:, 1, 1] + 0.4 * crsparams[:, 2, 1]
+    crsparams[:, 2, 0] = crsparams[:, 1, 0] + 0.1 * crsparams[:, 2, 0]
+    crsparams[:, 2, 1] = crsparams[:, 1, 1] + 0.1 * crsparams[:, 2, 1]
 
     crsparams = crsparams.view(-1)
 
