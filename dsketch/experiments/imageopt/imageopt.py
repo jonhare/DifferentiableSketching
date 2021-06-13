@@ -95,12 +95,14 @@ def save_pdf(params, cparams, args, file):
 def make_optimiser(args, params, cparams=None, sigma2params=None):
     module = importlib.import_module('torch.optim')
     opt = getattr(module, args.optimiser)
-    p = [params]
+    p = [{'params': params, 'lr': args.lr}]
     if cparams is not None:
-        p.append(cparams)
+        lr = args.colour_lr if 'colour_lr' in args else args.lr
+        p.append({'params': cparams, 'lr': lr})
     if sigma2params is not None:
-        p.append(sigma2params)
-    return opt(p, lr=args.lr)
+        lr = args.sigma2_lr if 'sigma2_lr' in args else args.lr
+        p.append({'params': sigma2params, 'lr': lr})
+    return opt(p)
 
 
 def optimise(target, params, cparams, sigma2params, render_fn, args):
@@ -314,6 +316,10 @@ def add_shared_args(parser):
     parser.add_argument("--crs-points", type=int, required=False,
                         help="number of catmull-rom points (excluding end control points", default=2)
     parser.add_argument("--opt-sigma2", action='store_true', required=False, help="optimise widths")
+    parser.add_argument("--sigma2-lr", type=float, required=False,
+                        help="sigma2 learning rate (defaults to --lr if not set)")
+    parser.add_argument("--colour-lr", type=float, required=False,
+                        help="colour learning rate (defaults to --lr if not set)")
 
 
 def main():
