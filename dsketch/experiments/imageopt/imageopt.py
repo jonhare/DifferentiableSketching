@@ -202,17 +202,26 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
-        pts = render_points(pparams, sigma2[0:args.points], grid)
+        if type(sigma2) != torch.Tensor:
+            pts = render_points(pparams, sigma2, grid)
+        else:
+            pts = render_points(pparams, sigma2[0:args.points], grid)
         ras.append(pts)
 
     if args.lines > 0:
         lparams = params[2 * args.points: 2 * args.points + 4 * args.lines].view(args.lines, 2, 2)
-        lns = render_lines(lparams, sigma2[args.points:args.points + args.lines], grid)
+        if type(sigma2) != torch.Tensor:
+            lns = render_lines(lparams, sigma2, grid)
+        else:
+            lns = render_lines(lparams, sigma2[args.points:args.points + args.lines], grid)
         ras.append(lns)
 
     if args.crs > 0:
         crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
-        crs = render_crs(crsparams, sigma2[args.points + args.lines:], grid, coordpairs)
+        if type(sigma2) != torch.Tensor:
+            crs = render_crs(crsparams, sigma2, grid, coordpairs)
+        else:
+            crs = render_crs(crsparams, sigma2[args.points + args.lines:], grid, coordpairs)
         ras.append(crs)
 
     ras = torch.cat(ras, dim=0)  # [1, nprim, row, col]
