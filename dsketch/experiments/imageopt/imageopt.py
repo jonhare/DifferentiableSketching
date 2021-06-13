@@ -191,6 +191,8 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
     if type(sigma2) != torch.Tensor:
         sigma2 = torch.ones((args.points + args.lines + args.crs, 1, 1), device=args.device) * sigma2
 
+    sigma2 = sigma2.expand(args.points + args.lines + args.crs, *args.target_shape[1:])
+
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
         pts = render_points(pparams, sigma2[0:args.points], grid)
