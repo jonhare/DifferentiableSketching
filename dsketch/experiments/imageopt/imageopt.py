@@ -18,6 +18,9 @@ from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline,
 
 
 def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
+    if type(sigma2) != torch.Tensor:
+        return torch.exp(-1 * dt2 / sigma2)
+
     tmp = -1 * dt2
     for i in range(tmp.shape[0]):
         tmp[i, :, :] = tmp[i, :, :] / sigma2[i]
@@ -196,9 +199,6 @@ def clamp_colour_params(params):
 
 def render(params, cparams, sigma2, grid, coordpairs, args):
     ras = []
-
-    if type(sigma2) != torch.Tensor:
-        sigma2 = torch.ones((args.points + args.lines + args.crs, 1, 1), device=args.device) * sigma2
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
