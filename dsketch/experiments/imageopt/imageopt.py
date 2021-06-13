@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image
-from torch import autograd
 from torchvision.utils import save_image
 from tqdm import tqdm
 
@@ -26,7 +25,10 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
     tmp2 = []
     for i in range(tmp.shape[0]):
         tmp2.append(tmp[i, :, :] / sigma2[i])
-    return torch.exp(torch.stack(tmp2, dim=0))
+    s = torch.stack(tmp2, dim=0)
+    e = torch.exp(s)
+    print(tmp.isnan().any(), s.isnan().any(), e.isnan().any(), sigma2.isnan().any())
+    return e
 
 
 def save_image(img, fp):
@@ -404,8 +406,7 @@ def main():
     if args.init_pdf is not None:
         save_pdf(params, cparams, args, args.init_pdf)
 
-    with autograd.detect_anomaly():
-        params = optimise(target, params, cparams, sigma2params, r, args)
+    params = optimise(target, params, cparams, sigma2params, r, args)
 
     if args.final_raster is not None:
         ras = r(params, cparams, args.final_sigma2)
