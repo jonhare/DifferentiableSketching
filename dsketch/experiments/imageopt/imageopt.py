@@ -22,9 +22,10 @@ def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
         return torch.exp(-1 * dt2 / sigma2)
 
     tmp = -1 * dt2
+    tmp2 = []
     for i in range(tmp.shape[0]):
-        tmp[i, :, :] = tmp[i, :, :] / sigma2[i]
-    return torch.exp(tmp)
+        tmp2.append(tmp[i, :, :] / sigma2[i])
+    return torch.exp(torch.stack(tmp2, dim=0))
 
 
 def save_image(img, fp):
