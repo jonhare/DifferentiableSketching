@@ -139,8 +139,8 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j] = torch.rand_like(crsparams[j]) - 0.5
                     crsparams[j, :, 0] *= 2 * args.grid_row_extent
                     crsparams[j, :, 1] *= 2 * args.grid_col_extent
-                    crsparams[:, -2, 0] = crsparams[:, 1, 0] + 0.3 * crsparams[:, -2, 0]
-                    crsparams[:, -2, 1] = crsparams[:, 1, 1] + 0.3 * crsparams[:, -2, 1]
+                    crsparams[:, 2, 0] = crsparams[:, 1, 0] + 0.3 * crsparams[:, 2, 0]
+                    crsparams[:, 2, 1] = crsparams[:, 1, 1] + 0.3 * crsparams[:, 2, 1]
 
             # sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2
             sigma2params.data.clamp_(1e-8, 1)
@@ -281,8 +281,8 @@ def make_init_params(args, img):
     # crsparams[:, 1, 1] = (crsparams[:, 1, 1] - 0.5) * 0.2 + crsparams[:, 0, 1]
     # crsparams[:, 2, 0] = (crsparams[:, 2, 0] - 0.5) * 0.2 + crsparams[:, 3, 0]
     # crsparams[:, 2, 1] = (crsparams[:, 2, 1] - 0.5) * 0.2 + crsparams[:, 3, 1]
-    crsparams[:, -2, 0] = crsparams[:, 1, 0] + 0.3 * crsparams[:, -2, 0]
-    crsparams[:, -2, 1] = crsparams[:, 1, 1] + 0.3 * crsparams[:, -2, 1]
+    crsparams[:, 2, 0] = crsparams[:, 1, 0] + 0.3 * crsparams[:, 2, 0]
+    crsparams[:, 2, 1] = crsparams[:, 1, 1] + 0.3 * crsparams[:, 2, 1]
 
     crsparams = crsparams.view(-1)
 
