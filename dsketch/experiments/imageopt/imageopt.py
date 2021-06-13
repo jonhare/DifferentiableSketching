@@ -142,8 +142,8 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j, -2, 0] = crsparams[j, 1, 0] + 0.3 * crsparams[j, -2, 0]
                     crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
 
-            # sigma2params.data += mask * torch.rand_like(sigma2params) * args.init_sigma2
-            sigma2params.data.clamp_(1e-8, 1)
+            sigma2params.data += mask * args.init_sigma2
+            sigma2params.data.clamp_(1e-8, args.init_sigma2)
 
         if sigma2params is None:
             if i % args.sigma2_step == 0:
