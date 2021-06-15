@@ -36,10 +36,11 @@ def draw_points_to_canvas(c, points: torch.Tensor, size=1, pcols=None):
     if points is not None:
         points = points.detach().cpu()
         for i in range(points.shape[0]):
+            _size = size[i] if isinstance(size, torch.Tensor) else size
             if pcols is None:
-                c.fill(path.circle(points[i, 1], -points[i, 0], size))
+                c.fill(path.circle(points[i, 1], -points[i, 0], _size))
             else:
-                c.fill(path.circle(points[i, 1], -points[i, 0], size), [color.rgb(*pcols[i])])
+                c.fill(path.circle(points[i, 1], -points[i, 0], _size), [color.rgb(*pcols[i])])
 
 
 def draw_lines_to_canvas(c, lines: torch.Tensor, lw=1, lcols=None):
@@ -48,14 +49,14 @@ def draw_lines_to_canvas(c, lines: torch.Tensor, lw=1, lcols=None):
 
     if lines is not None:
         lines = lines.detach().cpu()
-        lw = style.linewidth(lw)
         for i in range(lines.shape[0]):
+            _lw = lw[i] if isinstance(lw, torch.Tensor) else lw
             if lcols is None:
                 c.stroke(path.line(lines[i, 0, 1], -lines[i, 0, 0], lines[i, 1, 1], -lines[i, 1, 0]),
-                         [lw, style.linecap.round])
+                         [style.linewidth(_lw), style.linecap.round])
             else:
                 c.stroke(path.line(lines[i, 0, 1], -lines[i, 0, 0], lines[i, 1, 1], -lines[i, 1, 0]),
-                         [lw, style.linecap.round, color.rgb(*lcols[i])])
+                         [style.linewidth(_lw), style.linecap.round, color.rgb(*lcols[i])])
 
 
 def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=1, lw=1, pcols=None, lcols=None):
@@ -95,6 +96,7 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
         crs = crs.detach().cpu()
 
         for i in range(n):
+            _lw = lw[i] if isinstance(lw, torch.Tensor) else lw
             for j in range(nc - 4 + 1):
                 p0 = crs[i, j + 0]
                 p1 = crs[i, j + 1]
@@ -124,6 +126,6 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
                                    q2[1], -q2[0],
                                    q3[1], -q3[0])
                 if lcols is None:
-                    c.stroke(curve, [style.linewidth(lw), style.linecap.round])
+                    c.stroke(curve, [style.linewidth(_lw), style.linecap.round])
                 else:
-                    c.stroke(curve, [style.linewidth(lw), style.linecap.round, color.rgb(*lcols[i])])
+                    c.stroke(curve, [style.linewidth(_lw), style.linecap.round, color.rgb(*lcols[i])])

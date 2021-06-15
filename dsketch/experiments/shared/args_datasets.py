@@ -299,7 +299,7 @@ class Jon_QuickDrawDataset(_Dataset):
 
     @classmethod
     def get_transforms(cls, args, train=False):
-        ras = QuickDrawRasterisePIL(16)
+        ras = QuickDrawRasterisePIL(True, 16)
 
         def ras2(x):
             return ras(x), 0  # dataset is expected to return tuples

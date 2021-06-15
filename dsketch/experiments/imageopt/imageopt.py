@@ -17,7 +17,7 @@ from dsketch.utils.pyxdrawing import draw_points_lines_crs
 
 
 def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
-    if type(sigma2) != torch.Tensor:
+    if not isinstance(sigma2, torch.Tensor):
         return torch.exp(-1 * dt2 / sigma2)
 
     tmp = -1 * dt2
@@ -65,7 +65,10 @@ def save_pdf(params, cparams, args, file):
     crsparams = None
     ccrsparams = None
 
-    lw = math.sqrt(args.sigma2_current / args.sf) / 0.54925
+    if isinstance(args.sigma2_current, torch.Tensor):
+        lw = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
+    else:
+        lw = math.sqrt(args.sigma2_current / args.sf) / 0.54925
     # lw = 2
 
     if args.points > 0:
@@ -237,7 +240,7 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(args.points, 2)
-        if type(sigma2) != torch.Tensor:
+        if not isinstance(sigma2, torch.Tensor):
             pts = render_points(pparams, sigma2, grid)
         else:
             pts = render_points(pparams, sigma2[0:args.points], grid)
@@ -245,7 +248,7 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
 
     if args.lines > 0:
         lparams = params[2 * args.points: 2 * args.points + 4 * args.lines].view(args.lines, 2, 2)
-        if type(sigma2) != torch.Tensor:
+        if not isinstance(sigma2, torch.Tensor):
             lns = render_lines(lparams, sigma2, grid)
         else:
             lns = render_lines(lparams, sigma2[args.points:args.points + args.lines], grid)
@@ -253,7 +256,7 @@ def render(params, cparams, sigma2, grid, coordpairs, args):
 
     if args.crs > 0:
         crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
-        if type(sigma2) != torch.Tensor:
+        if not isinstance(sigma2, torch.Tensor):
             crs = render_crs(crsparams, sigma2, grid, coordpairs)
         else:
             crs = render_crs(crsparams, sigma2[args.points + args.lines:], grid, coordpairs)
@@ -417,7 +420,8 @@ def main():
     sigma2params = None
     if args.opt_sigma2:
         sigma2params = torch.ones(args.points + args.lines + args.crs,
-                                  device=args.device) * args.sigma2_current
+                                  device=args.device) * args.sigma2_init
+        args.sigma2_current = sigma2params
 
     params = make_init_params(args, target)
 

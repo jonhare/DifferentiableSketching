@@ -1,16 +1,15 @@
 from typing import Callable, Optional
 
 import torch
+from PIL import Image, ImageDraw
 from quickdraw import QuickDrawData, QuickDrawing, QuickDrawDataGroup
 from torch.types import Number
 from torch.utils.data.dataset import Dataset
+from torchvision.transforms.functional import to_tensor
 
 from ..raster.composite import softor
 from ..raster.disttrans import line_edt2
 from ..raster.raster import exp, nearest_neighbour, compute_nearest_neighbour_sigma_bres
-
-from PIL import Image, ImageDraw
-from torchvision.transforms.functional import to_tensor
 
 
 # pytorch dataset with all Quickdraw classes, with default of 1000 samples per class
@@ -124,8 +123,9 @@ class QuickDrawRasterise:
 
 # class to rasterise a QuickDraw image using PIL
 class QuickDrawRasterisePIL:
-    def __init__(self, stroke_width=1):
+    def __init__(self, ret_pil=False, stroke_width=1):
         self.stroke_width = stroke_width
+        self.ret_pil = ret_pil
 
     def __call__(self, qd: QuickDrawing) -> torch.Tensor:
         image = Image.new("L", (256, 256), color=0)
@@ -134,4 +134,6 @@ class QuickDrawRasterisePIL:
         for stroke in qd.strokes:
             image_draw.line(stroke, fill=255, width=self.stroke_width)
 
+        if self.ret_pil:
+            return image
         return to_tensor(image)
