@@ -100,6 +100,6 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None):
                                    bez3[i, 1], -bez3[i, 0],
                                    bez4[i, 1], -bez4[i, 0])
                 if lcols is None:
-                    c.stroke(curve, [lw, style.linecap.round])
+                    c.stroke(curve, [style.linewidth(lw), style.linecap.round])
                 else:
-                    c.stroke(curve, [lw, style.linecap.round, color.rgb(*lcols[i])])
+                    c.stroke(curve, [style.linewidth(lw), style.linecap.round, color.rgb(*lcols[i])])
