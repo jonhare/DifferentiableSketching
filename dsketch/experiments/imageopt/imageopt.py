@@ -143,7 +143,10 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
                     sigma2params.data[j] += args.init_sigma2
 
-            sigma2params.data.clamp_(1e-6, args.init_sigma2)
+            if i < args.iters / 2:
+                sigma2params.data.clamp_(1e-6, args.init_sigma2)
+            else:
+                sigma2params.data.clamp_(1e-10, args.init_sigma2)
 
         if sigma2params is None:
             if i % args.sigma2_step == 0:
