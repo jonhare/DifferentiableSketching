@@ -431,7 +431,7 @@ def main():
     sigma2params = None
     if args.opt_sigma2:
         sigma2params = torch.ones(args.points + args.lines + args.crs,
-                                  device=args.device) * args.sigma2_init
+                                  device=args.device) * args.init_sigma2
         args.sigma2_current = sigma2params
 
     params = make_init_params(args, target)
