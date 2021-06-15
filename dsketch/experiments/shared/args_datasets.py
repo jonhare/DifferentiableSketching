@@ -304,7 +304,8 @@ class Jon_QuickDrawDataset(_Dataset):
         def ras2(x):
             return ras(x), 0  # dataset is expected to return tuples
 
-        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(), transforms.Lambda(lambda x: 1 - x)]
+        tf = [ras2, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
+              transforms.Lambda(lambda x: 1 - x)]
 
         if train is True and args.augment is True:
             tf.insert(2,

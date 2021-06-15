@@ -66,10 +66,9 @@ def save_pdf(params, cparams, args, file):
     ccrsparams = None
 
     if isinstance(args.sigma2_current, torch.Tensor):
-        lw = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
+        sigma2 = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
     else:
-        lw = math.sqrt(args.sigma2_current / args.sf) / 0.54925
-    # lw = 2
+        sigma2 = math.sqrt(args.sigma2_current / args.sf) / 0.54925
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(-1, 2)
@@ -78,6 +77,8 @@ def save_pdf(params, cparams, args, file):
 
         if cparams is not None:
             cpparams = cparams[:args.points]
+
+        ptsizes = sigma2[0:args.points]
 
     if args.lines > 0:
         lparams = params[2 * args.points:2 * args.points + 4 * args.lines].view(-1, 2, 2)
@@ -93,6 +94,8 @@ def save_pdf(params, cparams, args, file):
         if cparams is not None:
             clparams = cparams[args.points:args.points + args.lines]
 
+        lw = sigma2[args.points:args.points + args.lines]
+
     if args.crs > 0:
         crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
         crsparams[:, :, 0] = args.target_shape[-2] * (crsparams[:, :, 0] + args.grid_row_extent) / (
@@ -103,8 +106,10 @@ def save_pdf(params, cparams, args, file):
         if cparams is not None:
             ccrsparams = cparams[args.points + args.lines:]
 
-    draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
-                          crscols=ccrsparams)
+        clw = sigma2[args.points + args.lines:]
+
+    draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=clw, pcols=cpparams, lcols=clparams,
+                          crscols=ccrsparams, )
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
