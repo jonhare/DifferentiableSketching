@@ -78,9 +78,15 @@ def draw_points_lines_crs(points: torch.Tensor, lines: torch.Tensor, crs: torch.
     c.writePDFfile(file=filename)
 
 
-def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None):
+def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
     # crs [n, nc, 2]; only draw nc>1<nc-1
     n, nc, _ = crs.shape
+
+    # Premultiplied power constant for the following tj() function.
+    alpha = alpha / 2
+
+    def tj(ti, pi, pj):
+        return ((pi - pj) ** 2).sum(dim=-1) ** alpha + ti
 
     if lcols is not None:
         lcols = lcols.detach().cpu()
@@ -88,17 +94,35 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None):
     if crs is not None:
         crs = crs.detach().cpu()
 
-        for j in range(nc - 4 + 1):
-            bez1 = crs[:, j + 1]  # first pt
-            bez2 = crs[:, j + 1] + (crs[:, j + 2] - crs[:, j + 0]) / (6 * 1)
-            bez3 = crs[:, j + 2] - (crs[:, j + 3] + crs[:, j + 1]) / (6 * 1)
-            bez4 = crs[:, j + 2]  # last pt
+        for i in range(n):
+            for j in range(nc - 4 + 1):
+                p0 = crs[i, j + 0]
+                p1 = crs[i, j + 1]
+                p2 = crs[i, j + 2]
+                p3 = crs[i, j + 3]
 
-            for i in range(n):
-                curve = path.curve(bez1[i, 1], -bez1[i, 0],
-                                   bez2[i, 1], -bez2[i, 0],
-                                   bez3[i, 1], -bez3[i, 0],
-                                   bez4[i, 1], -bez4[i, 0])
+                t0 = 0
+                t1 = tj(t0, p0, p1)
+                t2 = tj(t1, p1, p2)
+                t3 = tj(t2, p2, p3)
+
+                c1 = (t2 - t1) / (t2 - t0)
+                c2 = (t1 - t0) / (t2 - t0)
+                d1 = (t3 - t2) / (t3 - t1)
+                d2 = (t2 - t1) / (t3 - t1)
+
+                m1 = (t2 - t1) * (c1 * (p1 - p0) / (t1 - t0) + c2 * (p2 - p1) / (t2 - t1))
+                m2 = (t2 - t1) * (d1 * (p2 - p1) / (t2 - t1) + d2 * (p3 - p2) / (t3 - t2))
+
+                q0 = p1
+                q1 = p1 + m1 / 3
+                q2 = p2 - m2 / 3
+                q3 = p2
+
+                curve = path.curve(q0[1], -q0[0],
+                                   q1[1], -q1[0],
+                                   q2[1], -q2[0],
+                                   q3[1], -q3[0])
                 if lcols is None:
                     c.stroke(curve, [style.linewidth(lw), style.linecap.round])
                 else:
