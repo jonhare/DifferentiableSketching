@@ -1,4 +1,5 @@
 import argparse
+import collections
 import importlib
 import math
 from pathlib import Path
@@ -12,9 +13,8 @@ from tqdm import tqdm
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
 from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, catmull_rom_spline
-
-
 # from dsketch.raster.raster import exp
+from dsketch.utils.pyxdrawing import draw_points_lines_crs
 
 
 def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
@@ -76,7 +76,7 @@ def save_pdf(params, cparams, args, file):
             cpparams = cparams[:args.points]
 
     if args.lines > 0:
-        lparams = params[2 * args.points:].view(-1, 2, 2)
+        lparams = params[2 * args.points:2 * args.points + 4 * args.lines].view(-1, 2, 2)
         lparams[:, 0, 0] = args.target_shape[-2] * (lparams[:, 0, 0] + args.grid_row_extent) / (
                 2 * args.grid_row_extent)
         lparams[:, 0, 1] = args.target_shape[-1] * (lparams[:, 0, 1] + args.grid_col_extent) / (
@@ -87,9 +87,20 @@ def save_pdf(params, cparams, args, file):
                 2 * args.grid_col_extent)
 
         if cparams is not None:
-            clparams = cparams[args.points:]
+            clparams = cparams[args.points:args.points + args.lines]
 
-    # draw_points_lines(pparams, lparams, file, lw=lw, pcols=cpparams, lcols=clparams)
+    if args.crs > 0:
+        crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2)
+        crsparams[:, :, 0] = args.target_shape[-2] * (crsparams[:, :, 0] + args.grid_row_extent) / (
+                2 * args.grid_row_extent)
+        crsparams[:, :, 1] = args.target_shape[-1] * (crsparams[:, :, 1] + args.grid_col_extent) / (
+                2 * args.grid_col_extent)
+
+        if cparams is not None:
+            ccrsparams = cparams[args.points + args.lines:]
+
+    draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
+                          crscols=ccrsparams)
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
@@ -145,6 +156,7 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
 
             if i < args.iters / 2:
                 sigma2params.data.clamp_(1e-6, args.init_sigma2)
+                optim.state[-1] = collections.defaultdict(dict)
             else:
                 sigma2params.data.clamp_(1e-10, args.init_sigma2)
 
