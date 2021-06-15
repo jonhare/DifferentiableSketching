@@ -1,5 +1,4 @@
 import argparse
-import collections
 import importlib
 import math
 from pathlib import Path
@@ -13,8 +12,9 @@ from tqdm import tqdm
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
 from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, catmull_rom_spline
+
+
 # from dsketch.raster.raster import exp
-from dsketch.utils.pyxdrawing import draw_points_lines_crs
 
 
 def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
@@ -101,8 +101,8 @@ def save_pdf(params, cparams, args, file):
         if cparams is not None:
             ccrsparams = cparams[args.points + args.lines:]
 
-    draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
-                          crscols=ccrsparams)
+    # draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
+    #                       crscols=ccrsparams)
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
@@ -147,6 +147,12 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
         if sigma2params is not None:
             mask = sigma2params.data < 1e-6
             crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
+            exp_avg = optim.state[optim.param_groups[0]['params']]['exp_avg'][2 * args.points + 4 * args.lines:].view(
+                args.crs, 2 + args.crs_points, 2)
+            exp_avg_sq = optim.state[optim.param_groups[0]['params']]['exp_avg_sq'][
+                         2 * args.points + 4 * args.lines:].view(
+                args.crs, 2 + args.crs_points, 2)
+
             for j in range(len(mask)):
                 if mask[j] and i < args.iters / 2:
                     crsparams[j] = torch.rand_like(crsparams[j]) - 0.5
@@ -156,9 +162,13 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
                     sigma2params.data[j] += args.init_sigma2
 
+                    exp_avg[j, :, :] = 0
+                    exp_avg_sq[j, :, :] = 0
+                    optim.state[optim.param_groups[-1]['params']]['exp_avg'][j] = 0
+                    optim.state[optim.param_groups[-1]['params']]['exp_avg_sq'][j] = 0
+
             if i < args.iters / 2:
                 sigma2params.data.clamp_(1e-6, args.init_sigma2)
-                optim.state[-1] = collections.defaultdict(dict)
             else:
                 sigma2params.data.clamp_(1e-10, args.init_sigma2)
 
