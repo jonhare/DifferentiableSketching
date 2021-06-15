@@ -147,12 +147,6 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
         if sigma2params is not None:
             mask = sigma2params.data < 1e-6
             crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
-            exp_avg = optim.state[optim.param_groups[0]['params'][0]]['exp_avg'][
-                      2 * args.points + 4 * args.lines:].view(
-                args.crs, 2 + args.crs_points, 2)
-            exp_avg_sq = optim.state[optim.param_groups[0]['params'][0]]['exp_avg_sq'][
-                         2 * args.points + 4 * args.lines:].view(
-                args.crs, 2 + args.crs_points, 2)
 
             for j in range(len(mask)):
                 if mask[j] and i < args.iters / 2:
@@ -162,11 +156,6 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
                     crsparams[j, -2, 0] = crsparams[j, 1, 0] + 0.3 * crsparams[j, -2, 0]
                     crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
                     sigma2params.data[j] += args.init_sigma2
-
-                    exp_avg[j, :, :] = 0
-                    exp_avg_sq[j, :, :] = 0
-                    optim.state[optim.param_groups[-1]['params'][0]]['exp_avg'][j] = 0
-                    optim.state[optim.param_groups[-1]['params'][0]]['exp_avg_sq'][j] = 0
 
             if i < args.iters / 2:
                 sigma2params.data.clamp_(1e-6, args.init_sigma2)
