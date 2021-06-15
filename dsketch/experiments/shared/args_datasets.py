@@ -8,18 +8,16 @@ from PIL import Image
 from skimage.filters import threshold_otsu
 from skimage.morphology import skeletonize
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.datasets import MNIST, Omniglot
 
-import os
-sys.path.append(os.path.abspath('..'))
-from QuickDraw_pytorch.DataUtils.load_data import QD_Dataset
-
 from dsketch.datasets.quickdraw import QuickDrawDataGroupDataset, QuickDrawRasterisePIL
-
-
 from dsketch.experiments.shared.utils import list_class_names
+
+
+# sys.path.append(os.path.abspath('..'))
+# from QuickDraw_pytorch.DataUtils.load_data import QD_Dataset
 
 
 def compose(tf, args):
@@ -226,54 +224,53 @@ class C28pxOmniglotDataset(OmniglotDataset):
 
         return compose(transforms.Compose(tf), args)
 
-    
-    
-class QuickDrawDataset(_Dataset):
 
-    @staticmethod
-    def _add_args(p):
-        p.add_argument("--dataset-root", help="location of the dataset", type=pathlib.Path,
-                       default=pathlib.Path("./data/"), required=False)
-        p.add_argument("--valset-size-per-class", help="number of examples to use in validation set per class",
-                       type=int, default=2, required=False)
-        p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
-                       default=1234, required=False)
-        p.add_argument("--augment", help="add augmentation", default=False, required=False, action='store_true')
-        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
-                       default=False, required=False, action='store_true')
+# class QuickDrawDataset(_Dataset):
+#
+#     @staticmethod
+#     def _add_args(p):
+#         p.add_argument("--dataset-root", help="location of the dataset", type=pathlib.Path,
+#                        default=pathlib.Path("./data/"), required=False)
+#         p.add_argument("--valset-size-per-class", help="number of examples to use in validation set per class",
+#                        type=int, default=2, required=False)
+#         p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
+#                        default=1234, required=False)
+#         p.add_argument("--augment", help="add augmentation", default=False, required=False, action='store_true')
+#         p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
+#                        default=False, required=False, action='store_true')
+#
+#     @classmethod
+#     def get_size(cls, args):
+#         return 28
+#
+#     @classmethod
+#     def get_transforms(cls, args, train=False):
+#         tf = [transforms.Lambda(lambda x: x.view(28, 28))]
+# #         if train is True and args.augment is True:
+# #             tf.insert(0,
+# #                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
+#
+# #         if args.skeleton:
+# #             tf.insert(0, skeleton)
+#
+#         return compose(transforms.Compose(tf), args)
+#
+#     @classmethod
+#     def inv_transform(cls, x):
+#         return 1 - x
+#
+#     @classmethod
+#     def create(cls, args):
+#
+#         trainset = QD_Dataset(mtype="train", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, True))
+#         testset = QD_Dataset(mtype="test", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, False))
+#
+#
+#         train, valid = _split(args, trainset)
+#
+#         return train, valid, testset
 
-    @classmethod
-    def get_size(cls, args):
-        return 28
 
-    @classmethod
-    def get_transforms(cls, args, train=False):
-        tf = [transforms.Lambda(lambda x: x.view(28, 28))]
-#         if train is True and args.augment is True:
-#             tf.insert(0,
-#                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
-
-#         if args.skeleton:
-#             tf.insert(0, skeleton)
-
-        return compose(transforms.Compose(tf), args)
-
-    @classmethod
-    def inv_transform(cls, x):
-        return 1 - x
-
-    @classmethod
-    def create(cls, args):
-        
-        trainset = QD_Dataset(mtype="train", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, True))
-        testset = QD_Dataset(mtype="test", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, False))
-
-
-        train, valid = _split(args, trainset)
-
-        return train, valid, testset
-    
-    
 class Jon_QuickDrawDataset(_Dataset):
 
     @staticmethod
@@ -287,28 +284,55 @@ class Jon_QuickDrawDataset(_Dataset):
         p.add_argument("--augment", help="add augmentation", default=False, required=False, action='store_true')
         p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
                        default=False, required=False, action='store_true')
+        p.add_argument("--size", help="target image size", required=False, type=int, default=256)
+        p.add_argument("--stroke-width", help="initial stroke width before resize", default=16, required=False,
+                       type=int)
+        p.add_argument("--group", help="qd group name", default="yoga", required=False, type=str)
 
     @classmethod
     def get_size(cls, args):
-        return 256
+        return args.size
 
     @classmethod
     def inv_transform(cls, x):
         return 1 - x
 
     @classmethod
-    def create(cls, args):
+    def get_transforms(cls, args, train=False):
         ras = QuickDrawRasterisePIL(16)
+
         def ras2(x):
-            x = ras(x)
-            return x, x
-        
-        ds = QuickDrawDataGroupDataset("yoga", transform=ras2, max_drawings=70000)
+            return ras(x), 0  # dataset is expected to return tuples
+
+        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(), transforms.Lambda(lambda x: 1 - x)]
+
+        if train is True and args.augment is True:
+            tf.insert(2,
+                      transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
+
+        if args.skeleton:
+            tf.insert(2, skeleton)
+
+        return compose(transforms.Compose(tf), args)
+
+    @classmethod
+    def create(cls, args):
+        ds = QuickDrawDataGroupDataset(args.group, max_drawings=70000)
         trainset, testset = torch.utils.data.random_split(ds, [50000, 20000])
-        
         testset, valset = torch.utils.data.random_split(testset, [10000, 10000])
 
-        return trainset, valset, testset
+        class WD(Dataset):
+            def __init__(self, data, train=False):
+                self.tf = cls.get_transforms(args, train)
+                self.data = data
+
+            def __getitem__(self, index):
+                return self.tf(self.data[index])
+
+            def __len__(self):
+                return len(self.data)
+
+        return WD(trainset, True), WD(valset, False), WD(testset, False)
 
     
 def get_dataset(name):

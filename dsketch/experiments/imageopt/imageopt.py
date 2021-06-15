@@ -354,7 +354,7 @@ def add_shared_args(parser):
                         help="sigma2 learning rate (defaults to --lr if not set)")
     parser.add_argument("--colour-lr", type=float, required=False,
                         help="colour learning rate (defaults to --lr if not set)")
-    parser.add_argument("--restarts", action='store_true', required=False,
+    parser.add_argument("--restarts", action='store_true', required=False, default=False,
                         help="reinit params if sigma2 becomes too small")
 
 
