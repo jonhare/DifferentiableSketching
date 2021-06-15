@@ -147,20 +147,21 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
         if sigma2params is not None:
             mask = sigma2params.data < 1e-6
 
-            # if args.crs > 0:
-            #     crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
-            #
-            #     for j in range(len(mask)):
-            #         jj = args.points + args.lines + j
-            #         if mask[j] and i < args.iters / 2:
-            #             crsparams[jj] = torch.rand_like(crsparams[j]) - 0.5
-            #             crsparams[jj, :, 0] *= 2 * args.grid_row_extent
-            #             crsparams[jj, :, 1] *= 2 * args.grid_col_extent
-            #             crsparams[jj, -2, 0] = crsparams[jj, 1, 0] + 0.3 * crsparams[jj, -2, 0]
-            #             crsparams[jj, -2, 1] = crsparams[jj, 1, 1] + 0.3 * crsparams[jj, -2, 1]
-            #             sigma2params.data[j] += args.init_sigma2
+            if args.crs > 0 and args.restarts:
+                # TODO: same for pts and lines
+                crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
 
-            if i < args.iters / 2:
+                for j in range(len(mask)):
+                    jj = args.points + args.lines + j
+                    if mask[j] and i < args.iters / 2:
+                        crsparams[jj] = torch.rand_like(crsparams[j]) - 0.5
+                        crsparams[jj, :, 0] *= 2 * args.grid_row_extent
+                        crsparams[jj, :, 1] *= 2 * args.grid_col_extent
+                        crsparams[jj, -2, 0] = crsparams[jj, 1, 0] + 0.3 * crsparams[jj, -2, 0]
+                        crsparams[jj, -2, 1] = crsparams[jj, 1, 1] + 0.3 * crsparams[jj, -2, 1]
+                        sigma2params.data[j] += args.init_sigma2
+
+            if i < args.iters / 2 and args.restarts:
                 sigma2params.data.clamp_(1e-6, args.init_sigma2)
             else:
                 sigma2params.data.clamp_(1e-10, args.init_sigma2)
@@ -353,6 +354,8 @@ def add_shared_args(parser):
                         help="sigma2 learning rate (defaults to --lr if not set)")
     parser.add_argument("--colour-lr", type=float, required=False,
                         help="colour learning rate (defaults to --lr if not set)")
+    parser.add_argument("--restarts", action='store_true', required=False,
+                        help="reinit params if sigma2 becomes too small")
 
 
 def main():
