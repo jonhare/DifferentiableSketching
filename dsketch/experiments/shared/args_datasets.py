@@ -293,9 +293,9 @@ class Jon_QuickDrawDataset(_Dataset):
     def get_size(cls, args):
         return args.size
 
-    # @classmethod
-    # def inv_transform(cls, x):
-    #     return 1 - x
+    @classmethod
+    def inv_transform(cls, x):
+        return 1 - x
 
     @classmethod
     def get_transforms(cls, args, train=False):
