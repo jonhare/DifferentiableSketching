@@ -90,8 +90,8 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None):
 
         for j in range(nc - 4 + 1):
             bez1 = crs[:, j + 1]  # first pt
-            bez2 = crs[:, j + 1] + (crs[:, j + 2] - crs[:, j + 0]) / (6 * 0.5)
-            bez3 = crs[:, j + 2] - (crs[:, j + 3] + crs[:, j + 1]) / (6 * 0.5)
+            bez2 = crs[:, j + 1] + (crs[:, j + 2] - crs[:, j + 0]) / (6 * 1)
+            bez3 = crs[:, j + 2] - (crs[:, j + 3] + crs[:, j + 1]) / (6 * 1)
             bez4 = crs[:, j + 2]  # last pt
 
             for i in range(n):

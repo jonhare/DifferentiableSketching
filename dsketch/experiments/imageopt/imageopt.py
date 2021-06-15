@@ -11,10 +11,9 @@ from tqdm import tqdm
 
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
-from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, catmull_rom_spline
-
-
+from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, uniform_catmull_rom_spline
 # from dsketch.raster.raster import exp
+from dsketch.utils.pyxdrawing import draw_points_lines_crs
 
 
 def exp(dt2: torch.Tensor, sigma2) -> torch.Tensor:
@@ -101,8 +100,8 @@ def save_pdf(params, cparams, args, file):
         if cparams is not None:
             ccrsparams = cparams[args.points + args.lines:]
 
-    # draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
-    #                       crscols=ccrsparams)
+    draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=lw, pcols=cpparams, lcols=clparams,
+                          crscols=ccrsparams)
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
@@ -202,7 +201,7 @@ def render_crs(params, sigma2, grid, coordpairs):
 
     crs = crs.view(ncrs, -1, 4, 2)
 
-    return softor(exp(curve_edt2_polyline(crs, grid, 10, cfcn=catmull_rom_spline), sigma2), dim=1).unsqueeze(0)
+    return softor(exp(curve_edt2_polyline(crs, grid, 10, cfcn=uniform_catmull_rom_spline), sigma2), dim=1).unsqueeze(0)
 
 
 def clamp_params(params, args):
