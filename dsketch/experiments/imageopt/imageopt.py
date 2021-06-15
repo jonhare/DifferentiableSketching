@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from dsketch.experiments.shared.args_losses import loss_choices, get_loss
 from dsketch.raster.composite import softor, over
-from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, uniform_catmull_rom_spline
+from dsketch.raster.disttrans import point_edt2, line_edt2, curve_edt2_polyline, centripetal_catmull_rom_spline
 # from dsketch.raster.raster import exp
 from dsketch.utils.pyxdrawing import draw_points_lines_crs
 
@@ -201,7 +201,8 @@ def render_crs(params, sigma2, grid, coordpairs):
 
     crs = crs.view(ncrs, -1, 4, 2)
 
-    return softor(exp(curve_edt2_polyline(crs, grid, 10, cfcn=uniform_catmull_rom_spline), sigma2), dim=1).unsqueeze(0)
+    return softor(exp(curve_edt2_polyline(crs, grid, 10, cfcn=centripetal_catmull_rom_spline), sigma2),
+                  dim=1).unsqueeze(0)
 
 
 def clamp_params(params, args):
