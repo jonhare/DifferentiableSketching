@@ -300,11 +300,7 @@ class Jon_QuickDrawDataset(_Dataset):
     @classmethod
     def get_transforms(cls, args, train=False):
         ras = QuickDrawRasterisePIL(True, 16)
-
-        def ras2(x):
-            return ras(x), 0  # dataset is expected to return tuples
-
-        tf = [ras2, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
+        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
               transforms.Lambda(lambda x: 1 - x)]
 
         if train is True and args.augment is True:
@@ -328,7 +324,7 @@ class Jon_QuickDrawDataset(_Dataset):
                 self.data = data
 
             def __getitem__(self, index):
-                return self.tf(self.data[index])
+                return self.tf(self.data[index]), 0  # 0 as label indicator
 
             def __len__(self):
                 return len(self.data)
