@@ -114,7 +114,7 @@ def make_optimiser(args, params, cparams=None, sigma2params=None):
         p.append({'params': cparams, 'lr': lr})
     if sigma2params is not None:
         lr = args.sigma2_lr if 'sigma2_lr' in args else args.lr
-        p.append({'params': sigma2params, 'lr': lr})
+        p.append({'params': sigma2params, 'lr': lr, 'betas': (0, 0)})
     return opt(p)
 
 
@@ -146,16 +146,19 @@ def optimise(target, params, cparams, sigma2params, render_fn, args):
 
         if sigma2params is not None:
             mask = sigma2params.data < 1e-6
-            crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
 
-            for j in range(len(mask)):
-                if mask[j] and i < args.iters / 2:
-                    crsparams[j] = torch.rand_like(crsparams[j]) - 0.5
-                    crsparams[j, :, 0] *= 2 * args.grid_row_extent
-                    crsparams[j, :, 1] *= 2 * args.grid_col_extent
-                    crsparams[j, -2, 0] = crsparams[j, 1, 0] + 0.3 * crsparams[j, -2, 0]
-                    crsparams[j, -2, 1] = crsparams[j, 1, 1] + 0.3 * crsparams[j, -2, 1]
-                    sigma2params.data[j] += args.init_sigma2
+            if args.crs > 0:
+                crsparams = params[2 * args.points + 4 * args.lines:].view(args.crs, 2 + args.crs_points, 2).data
+
+                for j in range(len(mask)):
+                    jj = args.points + args.lines + j
+                    if mask[j] and i < args.iters / 2:
+                        crsparams[jj] = torch.rand_like(crsparams[j]) - 0.5
+                        crsparams[jj, :, 0] *= 2 * args.grid_row_extent
+                        crsparams[jj, :, 1] *= 2 * args.grid_col_extent
+                        crsparams[jj, -2, 0] = crsparams[jj, 1, 0] + 0.3 * crsparams[jj, -2, 0]
+                        crsparams[jj, -2, 1] = crsparams[jj, 1, 1] + 0.3 * crsparams[jj, -2, 1]
+                        sigma2params.data[j] += args.init_sigma2
 
             if i < args.iters / 2:
                 sigma2params.data.clamp_(1e-6, args.init_sigma2)
