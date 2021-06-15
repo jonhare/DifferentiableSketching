@@ -63,6 +63,8 @@ def save_pdf(params, cparams, args, file):
     cpparams = None
     lparams = None
     clparams = None
+    crsparams = None
+    ccrsparams = None
 
     lw = math.sqrt(args.sigma2_current / args.sf) / 0.54925
     # lw = 2
