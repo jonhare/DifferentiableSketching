@@ -299,9 +299,9 @@ class Jon_QuickDrawDataset(_Dataset):
 
     @classmethod
     def get_transforms(cls, args, train=False):
-        ras = QuickDrawRasterisePIL(True, 16)
-        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
-              transforms.Lambda(lambda x: 1 - x)]
+        ras = QuickDrawRasterisePIL(True, args.stroke_width)
+        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor()]
+        # transforms.Lambda(lambda x: 1 - x)]
 
         if train is True and args.augment is True:
             tf.insert(2,
