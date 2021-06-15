@@ -293,15 +293,15 @@ class Jon_QuickDrawDataset(_Dataset):
     def get_size(cls, args):
         return args.size
 
-    @classmethod
-    def inv_transform(cls, x):
-        return 1 - x
+    # @classmethod
+    # def inv_transform(cls, x):
+    #     return 1 - x
 
     @classmethod
     def get_transforms(cls, args, train=False):
         ras = QuickDrawRasterisePIL(True, args.stroke_width)
-        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
-              transforms.Lambda(lambda x: 1 - x)]
+        tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor()]
+        # transforms.Lambda(lambda x: 1 - x)]
 
         if train is True and args.augment is True:
             tf.insert(2,
