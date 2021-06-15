@@ -64,6 +64,9 @@ def save_pdf(params, cparams, args, file):
     clparams = None
     crsparams = None
     ccrsparams = None
+    ptsizes = None
+    lw = None
+    clw = None
 
     if isinstance(args.sigma2_current, torch.Tensor):
         sigma2 = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
