@@ -299,7 +299,7 @@ class Jon_QuickDrawDataset(_Dataset):
 
     @classmethod
     def get_transforms(cls, args, train=False):
-        ras = QuickDrawRasterisePIL(True, 16)
+        ras = QuickDrawRasterisePIL(True, args.stroke_width)
         tf = [ras, transforms.Resize((args.size, args.size)), transforms.ToTensor(),
               transforms.Lambda(lambda x: 1 - x)]
 
