@@ -9,7 +9,7 @@ types = [("--lines 500", "500lines"),
          ("--crs 500", "500crs"),
          ("--points 500", "500pts")]
 widths = [("--init-sigma2 1.0 --final-sigma2 1.0", "fixed"),
-          ("--init-sigma2 15.0 --optimise-sigma2 --sigma2-lr 0.00001", "learned")]
+          ("--init-sigma2 15.0 --opt-sigma2 --sigma2-lr 0.00001", "learned")]
 
 print("#!/bin/sh")
 for infile in glob.glob("data/extras/*.JPG"):

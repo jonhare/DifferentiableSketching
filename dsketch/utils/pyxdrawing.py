@@ -83,6 +83,9 @@ def draw_points_lines_crs(points: torch.Tensor, lines: torch.Tensor, crs: torch.
 
 def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
     # crs [n, nc, 2]; only draw nc>1<nc-1
+    if crs is None:
+        return
+    
     n, nc, _ = crs.shape
 
     # Premultiplied power constant for the following tj() function.
