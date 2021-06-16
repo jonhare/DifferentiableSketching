@@ -459,7 +459,7 @@ def main():
     params = optimise(target, params, cparams, sigma2params, r, args)
 
     if args.final_raster is not None:
-        ras = r(params, cparams, args.final_sigma2)
+        ras = r(params, cparams, args.sigma2_current)
         save_image(ras.detach().cpu(), args.final_raster)
 
     if args.final_pdf is not None:
