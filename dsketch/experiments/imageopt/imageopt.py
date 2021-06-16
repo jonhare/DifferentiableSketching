@@ -127,10 +127,10 @@ def make_optimiser(args, params, cparams=None, sigma2params=None):
     opt = getattr(module, args.optimiser)
     p = [{'params': params, 'lr': args.lr}]
     if cparams is not None:
-        lr = args.colour_lr if 'colour_lr' in args else args.lr
+        lr = args.colour_lr if args.colour_lr is not None else args.lr
         p.append({'params': cparams, 'lr': lr})
     if sigma2params is not None:
-        lr = args.sigma2_lr if 'sigma2_lr' in args else args.lr
+        lr = args.sigma2_lr if args.sigma2_lr is not None else args.lr
         p.append({'params': sigma2params, 'lr': lr, 'betas': (0, 0)})
     return opt(p)
 
@@ -368,9 +368,9 @@ def add_shared_args(parser):
     parser.add_argument("--crs-points", type=int, required=False,
                         help="number of catmull-rom points (excluding end control points", default=2)
     parser.add_argument("--opt-sigma2", action='store_true', required=False, help="optimise widths")
-    parser.add_argument("--sigma2-lr", type=float, required=False,
+    parser.add_argument("--sigma2-lr", type=float, required=False, default=None,
                         help="sigma2 learning rate (defaults to --lr if not set)")
-    parser.add_argument("--colour-lr", type=float, required=False,
+    parser.add_argument("--colour-lr", type=float, required=False, default=None,
                         help="colour learning rate (defaults to --lr if not set)")
     parser.add_argument("--restarts", action='store_true', required=False, default=False,
                         help="reinit params if sigma2 becomes too small")
