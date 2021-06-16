@@ -71,7 +71,7 @@ def save_pdf(params, cparams, args, file):
     if isinstance(args.sigma2_current, torch.Tensor):
         sigma2 = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
         # sigma2 = 2 * torch.sqrt(sigma2)
-        sigma2 /= 1.8
+        sigma2 /= 1.5
     else:
         sigma2 = math.sqrt(args.sigma2_current / args.sf) / 0.54925
 
