@@ -70,12 +70,14 @@ def save_pdf(params, cparams, args, file):
 
     if isinstance(args.sigma2_current, torch.Tensor):
         sigma2 = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
+        sigma2 = torch.sqrt(sigma2)
     else:
         sigma2 = math.sqrt(args.sigma2_current / args.sf) / 0.54925
-        sigma2 = sigma2 * (sigma2 > 1e-8)
-        ptsizes = sigma2
-        lw = sigma2
-        clw = sigma2
+
+    sigma2 = sigma2 * (sigma2 > 1e-8)
+    ptsizes = sigma2
+    lw = sigma2
+    clw = sigma2
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(-1, 2)

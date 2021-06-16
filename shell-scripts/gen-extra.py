@@ -1,6 +1,6 @@
 import glob
 
-genargs = "--invert --seed 1234 --width 200 --iters 500 --lr 0.01 --init-raster {out}/init.png --final-raster {out}/final.png --final-pdf {out}/final.pdf {infile}"
+genargs = "--invert --seed 1234 --width 300 --iters 500 --lr 0.01 --init-raster {out}/init.png --final-raster {out}/final.png --final-pdf {out}/final.pdf {infile}"
 
 losses = [("--loss LPIPSLoss --net vgg", "lpipsvgg"),
           ("--loss LPIPSLoss --net alex", "lpipsalex"),
