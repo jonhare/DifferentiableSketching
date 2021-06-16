@@ -10,7 +10,7 @@ from skimage.morphology import skeletonize
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-from torchvision.datasets import MNIST, Omniglot
+from torchvision.datasets import MNIST, Omniglot, KMNIST
 
 from dsketch.datasets.quickdraw import QuickDrawDataGroupDataset, QuickDrawRasterisePIL
 from dsketch.experiments.shared.utils import list_class_names
@@ -331,6 +331,46 @@ class Jon_QuickDrawDataset(_Dataset):
 
         return WD(trainset, True), WD(valset, False), WD(testset, False)
 
+
+    
+#the Kuzushiji-MNIST Dataset
+class KMNISTDataset(_Dataset):
+    @staticmethod
+    def _add_args(p):
+        p.add_argument("--dataset-root", help="location of the dataset", type=pathlib.Path,
+                       default=pathlib.Path("./data/"), required=False)
+        p.add_argument("--valset-size-per-class", help="number of examples to use in validation set per class",
+                       type=int, default=10, required=False)
+        p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
+                       default=1234, required=False)
+        p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
+                       default=False, required=False, action='store_true')
+
+    @classmethod
+    def get_transforms(cls, args, train=False):
+        if args.skeleton:
+            return compose(transforms.Compose([skeleton, transforms.ToTensor()]), args)
+        return compose(transforms.ToTensor(), args)
+
+    @classmethod
+    def get_size(cls, args):
+        return 28
+    
+    @classmethod
+    def inv_transform(cls, x):
+        return x   
+
+    @classmethod
+    def create(cls, args):
+        trainset = KMNIST(args.dataset_root, train=True, transform=cls.get_transforms(args, True), download=True)
+        testset = KMNIST(args.dataset_root, train=False, transform=cls.get_transforms(args, False), download=True)
+
+        train, valid = _split(args, trainset)
+
+        return train, valid, testset
+
+     
+    
     
 def get_dataset(name):
     ds = getattr(sys.modules[__name__], name + 'Dataset')
