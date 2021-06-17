@@ -102,7 +102,7 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
 
         for i in range(n):
             _lw = lw[i] if isinstance(lw, torch.Tensor) else lw
-            if _lw > 1e-7:
+            if _lw > 1e-3:
                 for j in range(nc - 4 + 1):
                     p0 = crs[i, j + 0]
                     p1 = crs[i, j + 1]
