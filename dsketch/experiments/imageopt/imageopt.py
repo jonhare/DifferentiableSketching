@@ -75,7 +75,7 @@ def save_pdf(params, cparams, args, file):
     else:
         sigma2 = math.sqrt(args.sigma2_current / args.sf) / 0.54925
 
-    sigma2 = sigma2 * (sigma2 > 1e-8)
+    sigma2 = sigma2 * (sigma2 > 1e-7)
     ptsizes = sigma2
     lw = sigma2
     clw = sigma2

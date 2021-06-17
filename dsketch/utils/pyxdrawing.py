@@ -85,7 +85,7 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
     # crs [n, nc, 2]; only draw nc>1<nc-1
     if crs is None:
         return
-    
+
     n, nc, _ = crs.shape
 
     # Premultiplied power constant for the following tj() function.
@@ -102,7 +102,7 @@ def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):
 
         for i in range(n):
             _lw = lw[i] if isinstance(lw, torch.Tensor) else lw
-            if _lw > 0:
+            if _lw > 1e-7:
                 for j in range(nc - 4 + 1):
                     p0 = crs[i, j + 0]
                     p1 = crs[i, j + 1]
