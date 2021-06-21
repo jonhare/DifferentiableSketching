@@ -1,6 +1,6 @@
 import glob
 
-genargs = "--invert --seed 1234 --width 300 --iters 500 --lr 0.01 --init-raster {out}/init.png --final-raster {out}/final.png --final-pdf {out}/final.pdf {infile}"
+genargs = "--invert --seed 1234 --width {wid} --iters 500 --lr 0.01 --init-raster {out}/init.png --final-raster {out}/final.png --final-pdf {out}/final.pdf {infile}"
 
 losses = [("--loss LPIPSLoss --net vgg", "lpipsvgg"),
           # ("--loss LPIPSLoss --net alex", "lpipsalex"),
@@ -23,5 +23,10 @@ for infile in glob.glob("data/extras/*.JPG"):
                 for col, colname in cols:
                     out = outbase + f"{lossname}-{typname}-{widthname}-{colname}"
 
-                    cmd = f"imageopt {loss} {typ} {width} {col} " + genargs.format(out=out, infile=infile)
+                    if infile[infile.rindex('/') + 1:-4] in ['16', '7']:
+                        wid = 250
+                    else:
+                        wid = 300
+
+                    cmd = f"imageopt {loss} {typ} {width} {col} " + genargs.format(out=out, wid=wid, infile=infile)
                     print(cmd)
