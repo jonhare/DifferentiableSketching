@@ -122,7 +122,8 @@ def save_pdf(params, cparams, args, file):
             clw = sigma2[args.points + args.lines:]
 
     draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=clw, pcols=cpparams, lcols=clparams,
-                          crscols=ccrsparams, size=ptsizes)
+                          crscols=ccrsparams, size=ptsizes,
+                          canvas_clip=[0, 0, args.target_shape[-2], args.target_shape[-1]])
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):

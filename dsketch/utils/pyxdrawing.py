@@ -61,8 +61,12 @@ def draw_lines_to_canvas(c, lines: torch.Tensor, lw=1, lcols=None):
                              [style.linewidth(_lw), style.linecap.round, color.rgb(*lcols[i])])
 
 
-def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=1, lw=1, pcols=None, lcols=None):
-    c = canvas.canvas()
+def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=1, lw=1, pcols=None, lcols=None,
+                      canvas_clip=None):
+    if canvas_clip is not None:
+        c = canvas.canvas([canvas.clip(path.rect(*canvas_clip))])
+    else:
+        c = canvas.canvas()
 
     draw_points_to_canvas(c, points, size, pcols)
     draw_lines_to_canvas(c, lines, lw, lcols)
@@ -71,8 +75,11 @@ def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=
 
 
 def draw_points_lines_crs(points: torch.Tensor, lines: torch.Tensor, crs: torch.Tensor, filename, size=1, lw=1, clw=1,
-                          pcols=None, lcols=None, crscols=None):
-    c = canvas.canvas()
+                          pcols=None, lcols=None, crscols=None, canvas_clip=None):
+    if canvas_clip is not None:
+        c = canvas.canvas([canvas.clip(path.rect(*canvas_clip))])
+    else:
+        c = canvas.canvas()
 
     draw_points_to_canvas(c, points, size, pcols)
     draw_lines_to_canvas(c, lines, lw, lcols)
