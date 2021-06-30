@@ -69,12 +69,16 @@ def save_pdf(params, cparams, args, file):
     clw = None
 
     if isinstance(args.sigma2_current, torch.Tensor):
-        sigma2 = torch.sqrt(args.sigma2_current / args.sf) / 0.54925
+        sigma2 = args.sigma2_current * (args.sigma2_current > 1e-7)
+        sigma2 = torch.sqrt(sigma2 / args.sf) / 0.54925
+        # sigma2 = 2 * torch.sqrt(sigma2)
+        sigma2 /= 1.5
     else:
         sigma2 = math.sqrt(args.sigma2_current / args.sf) / 0.54925
-        ptsizes = sigma2
-        lw = sigma2
-        clw = sigma2
+
+    ptsizes = sigma2
+    lw = sigma2
+    clw = sigma2
 
     if args.points > 0:
         pparams = params[0:2 * args.points].view(-1, 2)
@@ -118,7 +122,8 @@ def save_pdf(params, cparams, args, file):
             clw = sigma2[args.points + args.lines:]
 
     draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=clw, pcols=cpparams, lcols=clparams,
-                          crscols=ccrsparams, size=ptsizes)
+                          crscols=ccrsparams, size=ptsizes,
+                          canvas_clip=[0, 0, args.target_shape[-2], args.target_shape[-1]])
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
@@ -126,10 +131,10 @@ def make_optimiser(args, params, cparams=None, sigma2params=None):
     opt = getattr(module, args.optimiser)
     p = [{'params': params, 'lr': args.lr}]
     if cparams is not None:
-        lr = args.colour_lr if 'colour_lr' in args else args.lr
+        lr = args.colour_lr if args.colour_lr is not None else args.lr
         p.append({'params': cparams, 'lr': lr})
     if sigma2params is not None:
-        lr = args.sigma2_lr if 'sigma2_lr' in args else args.lr
+        lr = args.sigma2_lr if args.sigma2_lr is not None else args.lr
         p.append({'params': sigma2params, 'lr': lr, 'betas': (0, 0)})
     return opt(p)
 
@@ -367,9 +372,9 @@ def add_shared_args(parser):
     parser.add_argument("--crs-points", type=int, required=False,
                         help="number of catmull-rom points (excluding end control points", default=2)
     parser.add_argument("--opt-sigma2", action='store_true', required=False, help="optimise widths")
-    parser.add_argument("--sigma2-lr", type=float, required=False,
+    parser.add_argument("--sigma2-lr", type=float, required=False, default=None,
                         help="sigma2 learning rate (defaults to --lr if not set)")
-    parser.add_argument("--colour-lr", type=float, required=False,
+    parser.add_argument("--colour-lr", type=float, required=False, default=None,
                         help="colour learning rate (defaults to --lr if not set)")
     parser.add_argument("--restarts", action='store_true', required=False, default=False,
                         help="reinit params if sigma2 becomes too small")
@@ -458,7 +463,7 @@ def main():
     params = optimise(target, params, cparams, sigma2params, r, args)
 
     if args.final_raster is not None:
-        ras = r(params, cparams, args.final_sigma2)
+        ras = r(params, cparams, args.sigma2_current)
         save_image(ras.detach().cpu(), args.final_raster)
 
     if args.final_pdf is not None:

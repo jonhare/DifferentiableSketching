@@ -2,12 +2,12 @@ import importlib
 from abc import ABC, abstractmethod
 
 import torch.nn as nn
-import torchbearer
-from torchbearer.callbacks import decorators as callbacks
 
+import torchbearer
 from dsketch.experiments.shared import metrics
 from dsketch.raster.composite import softor
 from dsketch.raster.raster import exp, nearest_neighbour, compute_nearest_neighbour_sigma_bres
+from torchbearer.callbacks import decorators as callbacks
 
 MU = torchbearer.state_key('mu')
 LOGVAR = torchbearer.state_key('logvar')
@@ -47,74 +47,74 @@ class Encoder(_Base, ABC):
         cls._add_args(p)
         p.add_argument("--latent-size", help="size of latent space", type=int, default=64, required=False)
 
+    class Decoder(_Base, ABC):
+        def __init__(self, args):
+            super().__init__()
+            self.args = args
 
-class Decoder(_Base, ABC):
-    def __init__(self, args):
-        super().__init__()
-        self.args = args
+        @abstractmethod
+        def decode_to_params(self, inp):
+            pass
 
-    @abstractmethod
-    def decode_to_params(self, inp):
-        pass
+        @abstractmethod
+        def create_edt2(self, params):
+            pass
 
-    @abstractmethod
-    def create_edt2(self, params):
-        pass
+        def raster_soft(self, edt2, sigma2):
+            rasters = exp(edt2, sigma2)
+            return softor(rasters, keepdim=True)
 
-    def raster_soft(self, edt2, sigma2):
-        rasters = exp(edt2, sigma2)
-        return softor(rasters, keepdim=True)
+        def raster_hard(self, edt2):
+            rasters = nearest_neighbour(edt2.detach(), compute_nearest_neighbour_sigma_bres(self.grid))
+            return softor(rasters, keepdim=True)
 
-    def raster_hard(self, edt2):
-        rasters = nearest_neighbour(edt2.detach(), compute_nearest_neighbour_sigma_bres(self.grid))
-        return softor(rasters, keepdim=True)
+        @abstractmethod
+        def get_sigma2(self, params):
+            pass
 
-    @abstractmethod
-    def get_sigma2(self, params):
-        pass
+        @classmethod
+        def add_args(cls, p):
+            cls._add_args(p)
+            p.add_argument("--contrast", help="scale result constrast", type=float, default=1, required=False)
 
-    @classmethod
-    def add_args(cls, p):
-        cls._add_args(p)
-        p.add_argument("--contrast", help="scale result constrast", type=float, default=1, required=False)
+        def forward(self, inp, state=None):
+            params = self.decode_to_params(inp)
+            sigma2 = self.get_sigma2(params)
+            edt2 = self.create_edt2(params)
+            images = self.raster_soft(edt2, sigma2)
 
-    def forward(self, inp, state=None):
-        params = self.decode_to_params(inp)
-        sigma2 = self.get_sigma2(params)
-        edt2 = self.create_edt2(params)
-        images = self.raster_soft(edt2, sigma2)
+            if state is not None:
+                state[metrics.HARDRASTER] = self.raster_hard(edt2)
+                state[metrics.SQ_DISTANCE_TRANSFORM] = edt2
 
-        if state is not None:
-            state[metrics.HARDRASTER] = self.raster_hard(edt2)
-            state[metrics.SQ_DISTANCE_TRANSFORM] = edt2
+            return images * self.args.contrast
 
-        return images * self.args.contrast
+    class AdjustableSigmaMixin:
+        """
+        Provides a sigma2 parameter that isn't learned and can be adjusted externally
+        """
 
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
 
-class AdjustableSigmaMixin:
-    """
-    Provides a sigma2 parameter that isn't learned and can be adjusted externally
-    """
+        def get_sigma2(self, params=None):
+            return self.sigma2
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        def set_sigma2(self, value):
+            self.sigma2 = value
 
-    def get_sigma2(self, params=None):
-        return self.sigma2
-
-    def set_sigma2(self, value):
-        self.sigma2 = value
-
-    @staticmethod
-    def _add_args(p):
-        p.add_argument("--sigma2", "--init-sigma2", help="sigma^2 value for drawing lines", type=float, default=1e-2,
-                       required=False)
-        p.add_argument("--final-sigma2", help="final sigma^2 value for drawing lines; only used is sigma2_step is >0",
-                       type=float, default=1e-2, required=False)
-        p.add_argument("--sigma2-factor", type=float, required=False,
-                       help="factor to multiply sigma^2 by every sigma2-step epochs.", default=0.5)
-        p.add_argument("--sigma2-step", type=int, required=False,
-                       help="number of epochs between changes in sigma^2", default=-1)
+        @staticmethod
+        def _add_args(p):
+            p.add_argument("--sigma2", "--init-sigma2", help="sigma^2 value for drawing lines", type=float,
+                           default=1e-2,
+                           required=False)
+            p.add_argument("--final-sigma2",
+                           help="final sigma^2 value for drawing lines; only used is sigma2_step is >0",
+                           type=float, default=1e-2, required=False)
+            p.add_argument("--sigma2-factor", type=float, required=False,
+                           help="factor to multiply sigma^2 by every sigma2-step epochs.", default=0.5)
+            p.add_argument("--sigma2-step", type=int, required=False,
+                           help="number of epochs between changes in sigma^2", default=-1)
 
     def get_callbacks(self, args):
         self.set_sigma2(args.sigma2)
