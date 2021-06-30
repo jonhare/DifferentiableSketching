@@ -98,7 +98,7 @@ def build_test_trial(args):
             img_to_file(str(args.output) + '/test_samples.png'))
     ]
 
-    metrics = ['mse', ChamferMetric(), ModifiedHausdorffMetric()]
+    metrics = ['mse'] #Additional metrics: ChamferMetric(), ModifiedHausdorffMetric()
 
     if args.classifier_weights:
         classifier = get_classifier_model(args.classifier_model)().to(args.device)

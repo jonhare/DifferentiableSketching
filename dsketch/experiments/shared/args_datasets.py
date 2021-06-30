@@ -15,9 +15,8 @@ from torchvision.datasets import MNIST, Omniglot, KMNIST
 from dsketch.datasets.quickdraw import QuickDrawDataGroupDataset, QuickDrawRasterisePIL
 from dsketch.experiments.shared.utils import list_class_names
 
-
-# sys.path.append(os.path.abspath('..'))
-# from QuickDraw_pytorch.DataUtils.load_data import QD_Dataset
+random_seed = 1
+torch.manual_seed(random_seed)
 
 
 def compose(tf, args):
@@ -223,52 +222,6 @@ class C28pxOmniglotDataset(OmniglotDataset):
             tf.insert(2, skeleton)
 
         return compose(transforms.Compose(tf), args)
-
-
-# class QuickDrawDataset(_Dataset):
-#
-#     @staticmethod
-#     def _add_args(p):
-#         p.add_argument("--dataset-root", help="location of the dataset", type=pathlib.Path,
-#                        default=pathlib.Path("./data/"), required=False)
-#         p.add_argument("--valset-size-per-class", help="number of examples to use in validation set per class",
-#                        type=int, default=2, required=False)
-#         p.add_argument("--dataset-seed", help="random seed for the train/validation split", type=int,
-#                        default=1234, required=False)
-#         p.add_argument("--augment", help="add augmentation", default=False, required=False, action='store_true')
-#         p.add_argument("--skeleton", help="Convert each image to its morphological skeleton with a 1px wide stroke",
-#                        default=False, required=False, action='store_true')
-#
-#     @classmethod
-#     def get_size(cls, args):
-#         return 28
-#
-#     @classmethod
-#     def get_transforms(cls, args, train=False):
-#         tf = [transforms.Lambda(lambda x: x.view(28, 28))]
-# #         if train is True and args.augment is True:
-# #             tf.insert(0,
-# #                       transforms.RandomAffine(3.0, translate=(0.07, 0.07), scale=(0.99, 1.01), shear=1, fillcolor=255))
-#
-# #         if args.skeleton:
-# #             tf.insert(0, skeleton)
-#
-#         return compose(transforms.Compose(tf), args)
-#
-#     @classmethod
-#     def inv_transform(cls, x):
-#         return 1 - x
-#
-#     @classmethod
-#     def create(cls, args):
-#
-#         trainset = QD_Dataset(mtype="train", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, True))
-#         testset = QD_Dataset(mtype="test", root='/home/adm1g15/QuickDraw_pytorch/Dataset', transform=cls.get_transforms(args, False))
-#
-#
-#         train, valid = _split(args, trainset)
-#
-#         return train, valid, testset
 
 
 class Jon_QuickDrawDataset(_Dataset):
