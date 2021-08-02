@@ -14,6 +14,9 @@ from torchvision.datasets import MNIST, Omniglot, KMNIST
 
 from dsketch.datasets.quickdraw import QuickDrawDataGroupDataset, QuickDrawRasterisePIL
 from dsketch.experiments.shared.utils import list_class_names
+import os
+from torchvision import datasets
+from skimage import io, transform
 
 random_seed = 1
 torch.manual_seed(random_seed)
@@ -323,7 +326,126 @@ class KMNISTDataset(_Dataset):
         return train, valid, testset
 
      
+from PIL import Image
+
+class CustomImageNet(Dataset):
+    def __init__(self, split_file, root_dir, transform=None):
+        """
+        Args:
+            split_file (string): Path to the split file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.split_file = split_file
+        self.root_dir = root_dir
+        self.transform = transform
+        
+        f=open(self.split_file, 'r')
+        self.lines_in_file = f.readlines()
+        f.close()
+        
+        self.list_of_items=[]
+        for line in self.lines_in_file:
+            split_line=line.split()
+            self.list_of_items.append(split_line)
+
+    def __len__(self):
+        return len(self.lines_in_file)
     
+    def __getitem__(self, index: int):
+        if index >= len(self):
+            raise IndexError("{} index out of range".format(self.__class__.__name__))
+        img_name = os.path.join(self.root_dir,
+                                self.list_of_items[index][0])
+#         image = io.imread(img_name)
+#         image = Image.fromarray(image)
+        image = Image.open(img_name)
+        if(image.mode!='RGB'):
+            image=image.convert('RGB')
+        target = torch.tensor(int(self.list_of_items[index][1]))
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, target
+    
+class StratifiedImageNetDataset(_Dataset):
+    @staticmethod
+    def _add_args(p):
+        p.add_argument("--dataset-root", help="location of the dataset", type=pathlib.Path,
+                       default=pathlib.Path("/data/ILSVRC2012/"), required=False)
+        p.add_argument("--split", help="split of the dataset: 1 or 2", type=int,
+                       default=1, required=True)
+        p.add_argument("--image-size", help="size of resampled images", type=int, default=64, required=False)
+        p.add_argument("--imagenet-norm", help="normalise data with imagenet statistics", action='store_true',
+                       required=False)
+
+    @classmethod
+    def get_transforms(cls, args, train=False):
+
+        if train:
+            base = [
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor()
+            ]
+        else:
+            base = [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor()
+            ]
+
+        if args.imagenet_norm:
+            base.append(IMAGENET_NORM)
+
+        return compose(transforms.Compose(base), args)
+
+    @classmethod
+    def get_size(cls, args):
+        return args.image_size
+
+    @classmethod
+    def get_channels(cls, args):
+        return 3
+
+    @classmethod
+    def create(cls, args):
+        
+        traindir = os.path.join(str(args.dataset_root) + '/train/')
+        valdir = os.path.join(str(args.dataset_root) + '/val/')
+        
+        train_splits = os.path.join('../SketchingToCommunicate/utils/', 'ImageNetSplit_train'+ str(args.split))
+        val_splits = os.path.join('../SketchingToCommunicate/utils/', 'ImageNetSplit_val'+ str(args.split))
+        
+        trainset = CustomImageNet(train_splits, traindir, cls.get_transforms(args, True))
+        valset = CustomImageNet(val_splits, valdir, cls.get_transforms(args, False))
+        
+        testdir = os.path.join('/data/ILSVRC2012/' + '/test_dir/')
+        testset = datasets.ImageFolder(testdir, cls.get_transforms(args, False))
+        
+#         trainset = datasets.ImageFolder(traindir,cls.get_transforms(args, True))
+#         valset = datasets.ImageFolder(valdir,cls.get_transforms(args, False))
+
+        print(len(trainset))
+        print(len(valset))
+        print(len(testset))
+
+
+#         trainset = Balancing(trainset, transform=cls.get_transforms(args, True))
+#         valset = Transforming(valset, transform=cls.get_transforms(args, False))
+#         testset = Transforming(testset, transform=cls.get_transforms(args, False))
+
+        return  trainset, valset, testset #trainset1, trainset2,
+
+    @classmethod
+    def inv_transform(cls, x):
+        return x
+
+    @staticmethod
+    def num_classes():
+        return 1000    
     
 def get_dataset(name):
     ds = getattr(sys.modules[__name__], name + 'Dataset')

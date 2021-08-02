@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from dsketch.experiments.shared.utils import list_class_names
+import torchvision.models as models
 
 
 class MnistCNN(nn.Module):
@@ -175,7 +176,17 @@ class OmniglotBetterCNN(_BetterCNN):
     def __init__(self):
         super().__init__(964)
 
+class myVGG16(nn.Module):
+    def __init__(self):
+        super().__init__()
 
+        self.vgg16 = models.vgg16(pretrained=False)
+
+    def forward(self, x):
+        out = self.vgg16(x)
+        return out
+    
+    
 def get_model(name):
     # load a model class by name
     module = importlib.import_module(__package__ + '.models')
