@@ -358,8 +358,6 @@ class CustomImageNet(Dataset):
             raise IndexError("{} index out of range".format(self.__class__.__name__))
         img_name = os.path.join(self.root_dir,
                                 self.list_of_items[index][0])
-#         image = io.imread(img_name)
-#         image = Image.fromarray(image)
         image = Image.open(img_name)
         if(image.mode!='RGB'):
             image=image.convert('RGB')
@@ -416,28 +414,28 @@ class StratifiedImageNetDataset(_Dataset):
         traindir = os.path.join(str(args.dataset_root) + '/train/')
         valdir = os.path.join(str(args.dataset_root) + '/val/')
         
-        train_splits = os.path.join('../SketchingToCommunicate/utils/', 'ImageNetSplit_train'+ str(args.split))
-        val_splits = os.path.join('../SketchingToCommunicate/utils/', 'ImageNetSplit_val'+ str(args.split))
+        train_splits = os.path.join('dsketch/datasets/', 'ImageNetSplit_train'+ str(args.split))
+        val_splits = os.path.join('dsketch/datasets/', 'ImageNetSplit_val'+ str(args.split))
         
         trainset = CustomImageNet(train_splits, traindir, cls.get_transforms(args, True))
         valset = CustomImageNet(val_splits, valdir, cls.get_transforms(args, False))
         
-        testdir = os.path.join('/data/ILSVRC2012/' + '/test_dir/')
-        testset = datasets.ImageFolder(testdir, cls.get_transforms(args, False))
+#         testdir = os.path.join('/data/ILSVRC2012/' + '/test_dir/')
+#         testset = datasets.ImageFolder(testdir, cls.get_transforms(args, False))
         
-#         trainset = datasets.ImageFolder(traindir,cls.get_transforms(args, True))
-#         valset = datasets.ImageFolder(valdir,cls.get_transforms(args, False))
+        trainset = datasets.ImageFolder(traindir,cls.get_transforms(args, True))
+        valset = datasets.ImageFolder(valdir,cls.get_transforms(args, False))
 
         print(len(trainset))
         print(len(valset))
-        print(len(testset))
+#         print(len(testset))
 
 
 #         trainset = Balancing(trainset, transform=cls.get_transforms(args, True))
 #         valset = Transforming(valset, transform=cls.get_transforms(args, False))
 #         testset = Transforming(testset, transform=cls.get_transforms(args, False))
 
-        return  trainset, valset, testset #trainset1, trainset2,
+        return  trainset, valset, valset #testset #trainset1, trainset2,
 
     @classmethod
     def inv_transform(cls, x):
