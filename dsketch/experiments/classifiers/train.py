@@ -31,6 +31,21 @@ def add_sub_args(args, parser):
     if 'dataset' in args and args.dataset is not None:
         get_dataset(args.dataset).add_args(parser)
 
+        
+def build_distributed_dataloaders(args):
+    ds = get_dataset(args.dataset)
+    args.size = ds.get_size(args)
+
+    train, valid, test = ds.create(args)
+
+    sampler_train = torch.utils.data.distributed.DistributedSampler(train, shuffle=True)
+    sampler_val = torch.utils.data.distributed.DistributedSampler(valid, shuffle=False)
+    
+    trainloader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, num_workers=args.num_workers, pin_memory=True, sampler=sampler_train)
+    valloader = torch.utils.data.DataLoader(valid, batch_size=args.batch_size, num_workers=args.num_workers, pin_memory=True, sampler=sampler_val)
+
+    return trainloader, valloader, valloader
+        
 def main():
     fake_parser = FakeArgumentParser(add_help=False, allow_abbrev=False)
     add_shared_args(fake_parser)
@@ -43,14 +58,29 @@ def main():
     args.ngpus_per_node = torch.cuda.device_count()
     args.output.mkdir(exist_ok=True, parents=True)
     save_args(args.output)
+    
+    args.rank = 0
+    args.dist_url = 'tcp://localhost:58472'
+    args.world_size = args.ngpus_per_node
     torch.multiprocessing.spawn(main_worker, (args,), args.ngpus_per_node)
-        
+
+    
 def main_worker(gpu, args):
-    trainloader, valloader, testloader = build_dataloaders(args)
+    args.rank += gpu
+    
+    torch.distributed.init_process_group(
+        backend='nccl', init_method=args.dist_url,
+        world_size=args.world_size, rank=args.rank)
+    
+    torch.cuda.set_device(gpu)
+    torch.backends.cudnn.benchmark = True
+    args.device=cuda(gpu)
+    
+#     trainloader, valloader, testloader = build_dataloaders(args)
 
     path = str(args.output)
 
-    model = get_model(args.model)()
+    model = torch.nn.parallel.DistributedDataParallel(get_model(args.model)(), device_ids=[gpu])
 
     init_lr, sched = parse_learning_rate_arg(args.learning_rate)
 
@@ -58,8 +88,29 @@ def main_worker(gpu, args):
         opt = optim.Adam(model.parameters(), lr=init_lr, weight_decay=args.weight_decay)
     else:
         opt = optim.SGD(model.parameters(), lr=init_lr, weight_decay=args.weight_decay, momentum=args.momentum)
+    
+    
+    ds = get_dataset(args.dataset)
+    args.size = ds.get_size(args)
+
+    train, valid, test = ds.create(args)
+
+    sampler_train = torch.utils.data.distributed.DistributedSampler(train, shuffle=True)
+    sampler_val = torch.utils.data.distributed.DistributedSampler(valid, shuffle=False)
+    
+    assert args.batch_size % args.world_size == 0
+    per_device_batch_size = args.batch_size // args.world_size
+    
+    trainloader = torch.utils.data.DataLoader(train, batch_size=per_device_batch_size, num_workers=args.num_workers, pin_memory=True, sampler=sampler_train)
+    valloader = torch.utils.data.DataLoader(valid, batch_size=per_device_batch_size, num_workers=args.num_workers, pin_memory=True, sampler=sampler_val)
+        
+    @torchbearer.callbacks.on_start_epoch
+    def sampler_set_epoch(state):
+        sampler_train.set_epoch(state[torchbearer.EPOCH])
+        sampler_val.set_epoch(state[torchbearer.EPOCH])
 
     callbacks = [
+        sampler_set_epoch,
         Interval(filepath=path + '/model.{epoch:02d}.pt', period=10),
         MostRecent(filepath=path + '/model_final.pt'),
         CSVLogger(path + '/train-log.csv'),
@@ -71,10 +122,6 @@ def main_worker(gpu, args):
     trial.with_generators(train_generator=trainloader, val_generator=valloader)
     trial.run(epochs=args.epochs, verbose=2)
 
-    trial = tb.Trial(model, criterion=torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc'],
-                     callbacks=[CSVLogger(path + '/test-log.csv')]).to(args.device)
-    trial.with_generators(test_generator=testloader)
-    trial.predict(verbose=2)
         
 # def main():
 #     fake_parser = FakeArgumentParser(add_help=False, allow_abbrev=False)
