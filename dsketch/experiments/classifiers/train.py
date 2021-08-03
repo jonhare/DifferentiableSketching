@@ -31,7 +31,6 @@ def add_sub_args(args, parser):
     if 'dataset' in args and args.dataset is not None:
         get_dataset(args.dataset).add_args(parser)
 
-
 def main():
     fake_parser = FakeArgumentParser(add_help=False, allow_abbrev=False)
     add_shared_args(fake_parser)
@@ -41,12 +40,15 @@ def main():
     add_shared_args(parser)
     add_sub_args(fake_args, parser)
     args = parser.parse_args()
-
+    args.ngpus_per_node = torch.cuda.device_count()
+    args.output.mkdir(exist_ok=True, parents=True)
+    save_args(args.output)
+    torch.multiprocessing.spawn(main_worker, (args,), args.ngpus_per_node)
+        
+def main_worker(gpu, args):
     trainloader, valloader, testloader = build_dataloaders(args)
 
-    args.output.mkdir(exist_ok=True, parents=True)
     path = str(args.output)
-    save_args(args.output)
 
     model = get_model(args.model)()
 
@@ -73,3 +75,45 @@ def main():
                      callbacks=[CSVLogger(path + '/test-log.csv')]).to(args.device)
     trial.with_generators(test_generator=testloader)
     trial.predict(verbose=2)
+        
+# def main():
+#     fake_parser = FakeArgumentParser(add_help=False, allow_abbrev=False)
+#     add_shared_args(fake_parser)
+#     fake_args, _ = fake_parser.parse_known_args()
+
+#     parser = argparse.ArgumentParser()
+#     add_shared_args(parser)
+#     add_sub_args(fake_args, parser)
+#     args = parser.parse_args()
+
+#     trainloader, valloader, testloader = build_dataloaders(args)
+
+#     args.output.mkdir(exist_ok=True, parents=True)
+#     path = str(args.output)
+#     save_args(args.output)
+
+#     model = get_model(args.model)()
+
+#     init_lr, sched = parse_learning_rate_arg(args.learning_rate)
+
+#     if args.optimiser == 'Adam':
+#         opt = optim.Adam(model.parameters(), lr=init_lr, weight_decay=args.weight_decay)
+#     else:
+#         opt = optim.SGD(model.parameters(), lr=init_lr, weight_decay=args.weight_decay, momentum=args.momentum)
+
+#     callbacks = [
+#         Interval(filepath=path + '/model.{epoch:02d}.pt', period=10),
+#         MostRecent(filepath=path + '/model_final.pt'),
+#         CSVLogger(path + '/train-log.csv'),
+#         *sched
+#     ]
+
+#     trial = tb.Trial(model, opt, torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc', 'lr'],
+#                      callbacks=callbacks).to(args.device)
+#     trial.with_generators(train_generator=trainloader, val_generator=valloader)
+#     trial.run(epochs=args.epochs, verbose=2)
+
+#     trial = tb.Trial(model, criterion=torch.nn.CrossEntropyLoss(), metrics=['loss', 'acc'],
+#                      callbacks=[CSVLogger(path + '/test-log.csv')]).to(args.device)
+#     trial.with_generators(test_generator=testloader)
+#     trial.predict(verbose=2)
