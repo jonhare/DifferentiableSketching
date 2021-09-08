@@ -414,8 +414,8 @@ class StratifiedImageNetDataset(_Dataset):
         traindir = os.path.join(str(args.dataset_root) + '/train/')
         valdir = os.path.join(str(args.dataset_root) + '/val/')
         
-        train_splits = os.path.join('dsketch/datasets/', 'ImageNetSplit_train'+ str(args.split))
-        val_splits = os.path.join('dsketch/datasets/', 'ImageNetSplit_val'+ str(args.split))
+        train_splits = os.path.join('/home/adm1g15/DifferentiableSketching/dsketch/datasets/', 'ImageNetSplit_train'+ str(args.split))
+        val_splits = os.path.join('/home/adm1g15/DifferentiableSketching/dsketch/datasets/', 'ImageNetSplit_val'+ str(args.split))
         
         trainset = CustomImageNet(train_splits, traindir, cls.get_transforms(args, True))
         valset = CustomImageNet(val_splits, valdir, cls.get_transforms(args, False))
@@ -423,8 +423,8 @@ class StratifiedImageNetDataset(_Dataset):
 #         testdir = os.path.join('/data/ILSVRC2012/' + '/test_dir/')
 #         testset = datasets.ImageFolder(testdir, cls.get_transforms(args, False))
         
-        trainset = datasets.ImageFolder(traindir,cls.get_transforms(args, True))
-        valset = datasets.ImageFolder(valdir,cls.get_transforms(args, False))
+#         trainset = datasets.ImageFolder(traindir,cls.get_transforms(args, True))
+#         valset = datasets.ImageFolder(valdir,cls.get_transforms(args, False))
 
         print(len(trainset))
         print(len(valset))
