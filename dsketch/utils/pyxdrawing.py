@@ -6,7 +6,7 @@ import torch
 from pyx import canvas, path, style, color
 
 
-def draw_line_segments(lines: torch.Tensor, filename, lw=1):
+def draw_line_segments(lines: torch.Tensor, filename, lw=1, svg=False):
     c = canvas.canvas()
 
     lines = lines.detach().cpu()
@@ -15,10 +15,13 @@ def draw_line_segments(lines: torch.Tensor, filename, lw=1):
     for i in range(lines.shape[0]):
         c.stroke(path.line(lines[i, 0, 1], -lines[i, 0, 0], lines[i, 1, 1], -lines[i, 1, 0]), [lw, style.linecap.round])
 
-    c.writePDFfile(file=filename)
+    if svg:
+        c.writeSVGfile(file=filename)
+    else:
+        c.writePDFfile(file=filename)
 
 
-def draw_points(points: torch.Tensor, filename, size=1):
+def draw_points(points: torch.Tensor, filename, size=1, svg=False):
     c = canvas.canvas()
 
     points = points.detach().cpu()
@@ -26,7 +29,10 @@ def draw_points(points: torch.Tensor, filename, size=1):
     for i in range(points.shape[0]):
         c.fill(path.circle(points[i, 1], -points[i, 0], size))
 
-    c.writePDFfile(file=filename)
+    if svg:
+        c.writeSVGfile(file=filename)
+    else:
+        c.writePDFfile(file=filename)
 
 
 def draw_points_to_canvas(c, points: torch.Tensor, size=1, pcols=None):
@@ -62,7 +68,7 @@ def draw_lines_to_canvas(c, lines: torch.Tensor, lw=1, lcols=None):
 
 
 def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=1, lw=1, pcols=None, lcols=None,
-                      canvas_clip=None):
+                      canvas_clip=None, svg=False):
     if canvas_clip is not None:
         c = canvas.canvas([canvas.clip(path.rect(*canvas_clip))])
     else:
@@ -71,11 +77,14 @@ def draw_points_lines(points: torch.Tensor, lines: torch.Tensor, filename, size=
     draw_points_to_canvas(c, points, size, pcols)
     draw_lines_to_canvas(c, lines, lw, lcols)
 
-    c.writePDFfile(file=filename)
+    if svg:
+        c.writeSVGfile(file=filename)
+    else:
+        c.writePDFfile(file=filename)
 
 
 def draw_points_lines_crs(points: torch.Tensor, lines: torch.Tensor, crs: torch.Tensor, filename, size=1, lw=1, clw=1,
-                          pcols=None, lcols=None, crscols=None, canvas_clip=None):
+                          pcols=None, lcols=None, crscols=None, canvas_clip=None, svg=False):
     if canvas_clip is not None:
         c = canvas.canvas([canvas.clip(path.rect(*canvas_clip))])
     else:
@@ -85,7 +94,10 @@ def draw_points_lines_crs(points: torch.Tensor, lines: torch.Tensor, crs: torch.
     draw_lines_to_canvas(c, lines, lw, lcols)
     draw_crs_to_canvas(c, crs, clw, crscols)
 
-    c.writePDFfile(file=filename)
+    if svg:
+        c.writeSVGfile(file=filename)
+    else:
+        c.writePDFfile(file=filename)
 
 
 def draw_crs_to_canvas(c, crs: torch.Tensor, lw=1, lcols=None, alpha=0.5):

@@ -49,6 +49,12 @@ def save_image(img, fp):
 
 
 def save_pdf(params, cparams, args, file):
+    save_vector(params, cparams, args, file, svg=False):
+    save_vector(params, cparams, args, file.replace('.pdf', '.svg'), svg=True):
+
+
+
+def save_vector(params, cparams, args, file, svg=False):
     Path(file).parent.mkdir(parents=True, exist_ok=True)
     params = params.detach().cpu()
     if cparams is not None:
@@ -123,7 +129,8 @@ def save_pdf(params, cparams, args, file):
 
     draw_points_lines_crs(pparams, lparams, crsparams, file, lw=lw, clw=clw, pcols=cpparams, lcols=clparams,
                           crscols=ccrsparams, size=ptsizes,
-                          canvas_clip=[0, -args.target_shape[-2], args.target_shape[-1], args.target_shape[-2]])
+                          canvas_clip=[0, -args.target_shape[-2], args.target_shape[-1], args.target_shape[-2]],
+                          svg=svg)
 
 
 def make_optimiser(args, params, cparams=None, sigma2params=None):
