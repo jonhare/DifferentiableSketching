@@ -474,3 +474,8 @@ def main():
 
     if args.final_pdf is not None:
         save_pdf(params, cparams, args, args.final_pdf)
+
+
+if __name__ == "__main__":
+    main()
+    
