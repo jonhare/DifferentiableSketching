@@ -4,7 +4,7 @@ import torch.nn as nn
 from dsketch.experiments.characters.models.model_bases import AdjustableSigmaMixin, Decoder
 from dsketch.experiments.shared import metrics
 from dsketch.raster.composite import softor
-from dsketch.raster.disttrans import catmull_rom_spline, curve_edt2_bruteforce, curve_edt2_polyline, line_edt2
+from dsketch.raster.disttrans import catmull_rom_spline, curve_edt2_bruteforce, curve_edt2_polyline, line_edt2, point_edt2
 from dsketch.raster.raster import exp
 
 
@@ -392,5 +392,53 @@ class SinglePassSimpleBezierDecoder(SinglePassSimpleLineDecoder):
 
     def create_edt2(self, lines):
         edt2 = curve_edt2_polyline(lines, self.grid, 10)
+
+        return edt2
+    
+class SinglePassPointsDecoder(AdjustableSigmaMixin, Decoder):
+    def __init__(self, args, npoints=50, input=64, hidden=64, hidden2=256, sz=28, sigma2=1e-2):
+        super().__init__(args)
+
+        # build the coordinate grid:
+        r = torch.linspace(-1, 1, sz)
+        c = torch.linspace(-1, 1, sz)
+        grid = torch.meshgrid(r, c)
+        grid = torch.stack(grid, dim=2)
+        self.register_buffer("grid", grid)
+
+        self.latent_to_pointscoord = nn.Sequential(
+            nn.Linear(input, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden2),
+            nn.ReLU(),
+            nn.Linear(hidden2, npoints * 2),
+            nn.Tanh()
+        )
+
+        self.sigma2 = sigma2
+
+    @staticmethod
+    def _add_args(p):
+        p.add_argument("--npoints", help="number of points", type=int, default=50, required=False)
+        p.add_argument("--decoder-hidden", help="decoder hidden size", type=int, default=64, required=False)
+        p.add_argument("--decoder-hidden2", help="decoder hidden2 size", type=int, default=256, required=False)
+        AdjustableSigmaMixin._add_args(p)
+
+    @staticmethod
+    def create(args):
+        return SinglePassPointsDecoder(args, npoints=args.npoints, input=args.latent_size, hidden=args.decoder_hidden,
+                                           hidden2=args.decoder_hidden2, sz=args.size, sigma2=args.sigma2)
+
+    def decode_to_params(self, inp):
+        # the latent_to_linecoord process will map the input latent vector to control points
+        bs = inp.shape[0]
+
+        points = self.latent_to_pointscoord(inp)  # [batch, nlines*4]
+        points = points.view(bs, -1, 2)  # expand -> [batch, npoints, 2]
+
+        return points
+
+    def create_edt2(self, points):
+        edt2 = point_edt2(points, self.grid)
 
         return edt2
