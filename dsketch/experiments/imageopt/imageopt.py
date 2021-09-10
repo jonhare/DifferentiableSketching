@@ -50,8 +50,7 @@ def save_image(img, fp):
 
 def save_pdf(params, cparams, args, file):
     save_vector(params, cparams, args, file, svg=False):
-    save_vector(params, cparams, args, file.replace('.pdf', '.svg'), svg=True):
-
+    save_vector(params, cparams, args, file.replace('.pdf', '.svg'), svg=True)
 
 
 def save_vector(params, cparams, args, file, svg=False):
