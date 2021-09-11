@@ -134,7 +134,7 @@ def createVGG16FE(nettype, dev='cuda:0'):
 
         def make_hook(self, name):
             def hook(module, input, output):
-                self.fstate[name] = output
+                self.fmaps[name] = output
             return hook
 
         def forward(self, x):
