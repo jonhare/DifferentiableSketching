@@ -109,7 +109,7 @@ def createVGG16FE(nettype, dev='cuda:0'):
         vgg16.load_state_dict(new_state_dict)
     else:
         print("still imnet")
-        vgg16 = models.vgg16(pretrained=pretrained)
+        vgg16 = models.vgg16(pretrained=True)
 
 
     class Wrapped(nn.Module):
