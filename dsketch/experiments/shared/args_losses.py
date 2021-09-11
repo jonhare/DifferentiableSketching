@@ -324,7 +324,7 @@ class FeatureMapLoss(_Loss):
         p.add_argument("--invert-sketch", action='store_true', required=False, help="should the sketch be inverted before loss is computed?")
 
     def __call__(self, input, target):
-        if self.invert_sketch:
+        if self.invert:
             input = 1 - input
 
         if input.ndim == 3:
