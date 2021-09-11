@@ -141,7 +141,7 @@ def createVGG16FE(nettype, dev='cuda:0'):
             self.fmaps = {}
             return self.net(x)
 
-    return Wrapped(vgg16)
+    return Wrapped(vgg16).to(dev)
 
 
 def spatial_average(in_tens, keepdim=True):
