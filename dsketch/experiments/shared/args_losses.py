@@ -334,7 +334,9 @@ class FeatureMapLoss(_Loss):
         outs1 = self.net.fmaps
 
         feats0, feats1, diffs = {}, {}, {}
-        for kk in outs0.keys():
+        for kk in VGG16_LAYER_KEYS:
+            if not kk in feats0:
+                continue
             feats0[kk], feats1[kk] = normalize_tensor(outs0[kk]), normalize_tensor(outs1[kk])
             diffs[kk] = (feats0[kk] - feats1[kk]) ** 2
 
