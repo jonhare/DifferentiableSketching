@@ -314,6 +314,8 @@ class FeatureMapLoss(_Loss):
         if args.net == 'face':
             self.norm = False
 
+        self.invert = args.invert
+
     @staticmethod
     def add_args(p):
         p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin', 'face'], required=False)
@@ -321,6 +323,10 @@ class FeatureMapLoss(_Loss):
                         help="feature maps loss weights")
 
     def __call__(self, input, target):
+        if self.invert:
+            input = 1 - input
+            target = 1 - target
+
         if input.ndim == 3:
             input = input.unsqueeze(0)
             target = target.unsqueeze(0)
