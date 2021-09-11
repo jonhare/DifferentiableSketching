@@ -321,7 +321,7 @@ class FeatureMapLoss(_Loss):
         p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin', 'face'], required=False)
         p.add_argument("--fm-weights", type=float, nargs='+', required=False, default=[1, 1, 1, 1, 1],
                         help="feature maps loss weights")
-        parser.add_argument("--invert-sketch", action='store_true', required=False, help="should the sketch be inverted before loss is computed?")
+        p.add_argument("--invert-sketch", action='store_true', required=False, help="should the sketch be inverted before loss is computed?")
 
     def __call__(self, input, target):
         if self.invert_sketch:
