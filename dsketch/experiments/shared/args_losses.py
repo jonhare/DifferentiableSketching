@@ -299,6 +299,7 @@ def normalize_tensor(in_feat, eps=1e-10):
 
 
 IMAGENET_NORM = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+FACE_NORM = transforms.Compose(transforms.Lambda(lambda x: x*255), transforms.Normalize(mean=[129.186279296875, 104.76238250732422, 93.59396362304688], std=[1,1,1]))
 
 class FeatureMapLoss(_Loss):
     def __init__(self, args):
@@ -307,6 +308,9 @@ class FeatureMapLoss(_Loss):
         self.net = createVGG16FE(args.net, args.device)
         self.weights = args.fm_weights
         self.coef = 1
+        self.norm = True
+        if args.net == 'face':
+            self.norm = False
 
     @staticmethod
     def add_args(p):
@@ -323,8 +327,12 @@ class FeatureMapLoss(_Loss):
             input = torch.cat([input] * 3, dim=1)
             target = torch.cat([target] * 3, dim=1)
 
-        input = IMAGENET_NORM(input)
-        target = IMAGENET_NORM(target)
+        if self.norm:
+            input = IMAGENET_NORM(input)
+            target = IMAGENET_NORM(target)
+        else:
+            input = FACE_NORM(input)
+            target = FACE_NORM(target)
 
 
         self.net(input)
