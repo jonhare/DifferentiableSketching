@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from dsketch.experiments.shared.utils import list_class_names
 from dsketch.losses import BlurredMSE, PyramidMSE, DoGPyramidMSE
 
+from torchvision.transforms import transforms
 
 class _Loss:
     def __init__(self, args):
