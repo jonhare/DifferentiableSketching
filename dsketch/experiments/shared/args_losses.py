@@ -9,6 +9,8 @@ from dsketch.losses import BlurredMSE, PyramidMSE, DoGPyramidMSE
 
 from torchvision.transforms import transforms
 import torchvision.models as models
+import torch.nn as nn
+
 
 class _Loss:
     def __init__(self, args):
