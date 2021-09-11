@@ -186,6 +186,7 @@ class Vgg_face_dag(nn.Module):
 class Vgg_face(nn.Module):
 
     def __init__(self, dag):
+        super().__init__()
         self.features = nn.Sequential(
             dag.conv1_1,
             dag.relu1_1,
