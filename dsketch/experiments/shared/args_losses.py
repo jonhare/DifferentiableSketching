@@ -118,6 +118,7 @@ def createVGG16FE(nettype, dev='cuda:0'):
         def __init__(self, net):
             super().__init__()
 
+            layer = 'relu5_3'
             layidx, fms, ds = VGG16_LAYERS[layer]
 
             self.net = net.features[:layidx]
