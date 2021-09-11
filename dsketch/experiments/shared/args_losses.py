@@ -249,7 +249,7 @@ def createVGG16FE(nettype, dev='cuda:0'):
         vgg16 = Vgg_face_dag()
         state_dict = torch.load("/ssd/vgg_face_dag.pth")
         vgg16.load_state_dict(state_dict)
-        return Vgg_face(model)
+        vgg16 = Vgg_face(vgg16)
     else:
         print("still imnet")
         vgg16 = models.vgg16(pretrained=True)
