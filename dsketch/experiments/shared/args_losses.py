@@ -305,12 +305,14 @@ class FeatureMapLoss(_Loss):
         super().__init__(args)
 
         self.net = createVGG16FE(args.net, args.device)
-        self.weights=[1,1,1,1,1]
+        self.weights = args.fm_weights
         self.coef = 1
 
     @staticmethod
     def add_args(p):
         p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin', 'face'], required=False)
+        parser.add_argument("--fm-weights", type=float, nargs='+', required=False, default=[1, 1, 1, 1, 1],
+                        help="feature maps loss weights")
 
     def __call__(self, input, target):
         if input.ndim == 3:
