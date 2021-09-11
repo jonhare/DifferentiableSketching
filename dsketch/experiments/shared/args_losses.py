@@ -334,13 +334,15 @@ class FeatureMapLoss(_Loss):
         outs1 = self.net.fmaps
 
         feats0, feats1, diffs = {}, {}, {}
+        keys = []
         for kk in VGG16_LAYER_KEYS:
-            if not kk in feats0:
+            if not kk in outs0:
                 continue
+            keys.append(kk)
             feats0[kk], feats1[kk] = normalize_tensor(outs0[kk]), normalize_tensor(outs1[kk])
             diffs[kk] = (feats0[kk] - feats1[kk]) ** 2
 
-        res = [spatial_average(diffs[kk].sum(dim=1, keepdim=True), keepdim=True) for kk in outs0.keys()]
+        res = [spatial_average(diffs[kk].sum(dim=1, keepdim=True), keepdim=True) for kk in keys]
 
         val = self.weights[0] * res[0]
         for i in range(1, min(len(res), len(self.weights))):
