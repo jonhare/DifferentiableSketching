@@ -311,7 +311,7 @@ class FeatureMapLoss(_Loss):
     @staticmethod
     def add_args(p):
         p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin', 'face'], required=False)
-        parser.add_argument("--fm-weights", type=float, nargs='+', required=False, default=[1, 1, 1, 1, 1],
+        p.add_argument("--fm-weights", type=float, nargs='+', required=False, default=[1, 1, 1, 1, 1],
                         help="feature maps loss weights")
 
     def __call__(self, input, target):
