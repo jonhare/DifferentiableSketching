@@ -299,7 +299,9 @@ def normalize_tensor(in_feat, eps=1e-10):
 
 
 IMAGENET_NORM = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-FACE_NORM = transforms.Compose(transforms.Lambda(lambda x: x*255), transforms.Normalize(mean=[129.186279296875, 104.76238250732422, 93.59396362304688], std=[1,1,1]))
+FACE_NORM = transforms.Compose([
+    transforms.Lambda(lambda x: x*255), 
+    transforms.Normalize(mean=[129.186279296875, 104.76238250732422, 93.59396362304688], std=[1,1,1])])
 
 class FeatureMapLoss(_Loss):
     def __init__(self, args):
