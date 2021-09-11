@@ -163,7 +163,7 @@ class FeatureMapLoss(_Loss):
 
     @staticmethod
     def add_args(p):
-        p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin'] required=False)
+        p.add_argument("--net", help="network weights", type=str, default='imnet', choices=['imnet', 'sin'], required=False)
 
     def __call__(self, input, target):
         if input.ndim == 3:
