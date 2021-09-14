@@ -62,12 +62,17 @@ class LPIPSLoss(_Loss):
         super().__init__(args)
 
         self.loss = lpips.LPIPS(net=args.net).to(args.device)
+        self.invert = args.invert_sketch
 
     @staticmethod
     def add_args(p):
         p.add_argument("--net", help="network for pips [alex or vgg]", type=str, default='vgg', required=False)
+        p.add_argument("--invert-sketch", action='store_true', required=False, help="should the sketch be inverted before loss is computed?")
 
     def __call__(self, input, target):
+        if self.invert:
+            input = 1 - input
+            
         input2 = (input - 0.5) * 2
         target2 = (target - 0.5) * 2
 
