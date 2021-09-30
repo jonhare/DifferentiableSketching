@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from dsketch.experiments.characters.models.model_bases import AdjustableSigmaMixin, Decoder
+from dsketch.experiments.characters.models.model_bases import AdjustableSigmaMixin, Decoder, ColourDecoder
 from dsketch.experiments.shared import metrics
 from dsketch.raster.composite import softor
 from dsketch.raster.disttrans import catmull_rom_spline, curve_edt2_bruteforce, curve_edt2_polyline, line_edt2, point_edt2
@@ -275,6 +275,66 @@ class SinglePassSimpleLineDecoder(AdjustableSigmaMixin, Decoder):
         lines = lines.view(bs, -1, 2, 2)  # expand -> [batch, nlines, 2, 2]
 
         return lines
+
+    def create_edt2(self, lines):
+        edt2 = line_edt2(lines, self.grid)
+
+        return edt2
+    
+    
+class SinglePassColouredLineDecoder(AdjustableSigmaMixin, ColourDecoder):
+    def __init__(self, args, nlines=5, input=64, hidden=64, hidden2=256, sz=28, sigma2=1e-2):
+        super().__init__(args)
+
+        # build the coordinate grid:
+        r = torch.linspace(-1, 1, sz)
+        c = torch.linspace(-1, 1, sz)
+        grid = torch.meshgrid(r, c)
+        grid = torch.stack(grid, dim=2)
+        self.register_buffer("grid", grid)
+
+        self.latent_to_linecoord = nn.Sequential(
+            nn.Linear(input, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden2),
+            nn.ReLU(),
+            nn.Linear(hidden2, nlines * 4),
+            nn.Tanh()
+        )
+        
+        self.latent_to_rgbvalues = nn.Sequential(
+            nn.Linear(input, nlines * 3),
+            nn.Sigmoid()
+        )
+
+        self.sigma2 = sigma2
+
+    @staticmethod
+    def _add_args(p):
+        p.add_argument("--nlines", help="number of lines", type=int, default=5, required=False)
+        p.add_argument("--decoder-hidden", help="decoder hidden size", type=int, default=64, required=False)
+        p.add_argument("--decoder-hidden2", help="decoder hidden2 size", type=int, default=256, required=False)
+        AdjustableSigmaMixin._add_args(p)
+
+    @staticmethod
+    def create(args):
+        return SinglePassColouredLineDecoder(args, nlines=args.nlines, input=args.latent_size, hidden=args.decoder_hidden,
+                                           hidden2=args.decoder_hidden2, sz=args.size, sigma2=args.sigma2)
+
+    def decode_to_params(self, inp):
+        # the latent_to_linecoord process will map the input latent vector to control points
+        bs = inp.shape[0]
+
+        lines = self.latent_to_linecoord(inp)  # [batch, nlines*4]
+        lines = lines.view(bs, -1, 2, 2)  # expand -> [batch, nlines, 2, 2]
+
+        return lines
+    
+    def decode_to_colour(self, inp):
+        bs = inp.shape[0]
+        rgb_values=self.latent_to_rgbvalues(inp) # [batch, nlines*3]
+        rgb_values=rgb_values.view(bs, -1, 3)
+        return rgb_values
 
     def create_edt2(self, lines):
         edt2 = line_edt2(lines, self.grid)

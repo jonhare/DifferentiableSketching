@@ -2,6 +2,7 @@ import importlib
 from abc import ABC, abstractmethod
 
 import torch.nn as nn
+import torch
 
 import torchbearer
 from dsketch.experiments.shared import metrics
@@ -89,6 +90,85 @@ class Decoder(_Base, ABC):
 
         return images * self.args.contrast
 
+    
+class ColourDecoder(Decoder, ABC):
+#     def __init__(self, args):
+#         super().__init__()
+#         self.args = args
+
+    @abstractmethod
+    def decode_to_params(self, inp):
+        pass
+    
+    @abstractmethod
+    def decode_to_colour(self, inp):
+        pass
+
+    @abstractmethod
+    def create_edt2(self, params):
+        pass
+
+    def raster_soft(self, edt2, sigma2):
+        rasters = exp(edt2, sigma2)
+        return softor(rasters, keepdim=True)
+
+    def raster_hard(self, edt2):
+        rasters = nearest_neighbour(edt2.detach(), compute_nearest_neighbour_sigma_bres(self.grid))
+        return softor(rasters, keepdim=True)
+
+    @abstractmethod
+    def get_sigma2(self, params):
+        pass
+
+    @classmethod
+    def add_args(cls, p):
+        cls._add_args(p)
+        p.add_argument("--contrast", help="scale result constrast", type=float, default=1, required=False)
+
+    def forward(self, inp, state=None):
+        params = self.decode_to_params(inp)
+        sigma2 = self.get_sigma2(params)
+        edt2 = self.create_edt2(params)  # [bs, nprim, row, col]
+#         print("initial edt2")
+#         print(edt2.shape)
+        
+        #added by me to colour each line independently
+        edt2 = edt2.unsqueeze(2)  # [bs, nprim, 1, row, col]
+        edt2 = edt2.repeat_interleave(3, dim=2)  # [bs, nprim, 3, row, col]
+#         print(edt2.shape)
+        
+        rgb_values=self.decode_to_colour(inp) # [bs, nprim, 3]
+#         print("rgbval here")
+#         print(rgb_values.shape) 
+        rgb=rgb_values.unsqueeze(-1).unsqueeze(-1) # [bs, nprim, 3, 1, 1]
+#         print(rgb.shape)
+        
+        edt2 = rgb * edt2  # [bs, nprim, 3, row, col]
+#         print("edt again")
+#         print(edt2.shape)
+        
+        images = self.raster_soft(edt2, sigma2) # [bs, 1, 3, row, col]
+#         print("images shape")
+#         print(images.shape)
+        images = images.squeeze(1) # [bs, 3, row, col]
+#         print(images.shape)
+#         #to add colour method here
+#         rgb_values=self.decode_to_colour(inp)
+# #         print(rgb_values.shape)
+#         rgb=rgb_values.unsqueeze(-1).unsqueeze(-1)
+# #         print(rgb.shape)
+#         images = torch.cat(3 * [images], dim=1)
+# #         print(images.shape)
+# #         images = images * rgb_values
+#         images = rgb * images
+# #         print(images.shape)
+
+        if state is not None:
+            state[metrics.HARDRASTER] = self.raster_hard(edt2)
+            state[metrics.SQ_DISTANCE_TRANSFORM] = edt2
+
+        return images * self.args.contrast
+    
 class AdjustableSigmaMixin:
     """
     Provides a sigma2 parameter that isn't learned and can be adjusted externally
