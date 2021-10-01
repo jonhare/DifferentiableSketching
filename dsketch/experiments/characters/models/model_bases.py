@@ -6,7 +6,7 @@ import torch
 
 import torchbearer
 from dsketch.experiments.shared import metrics
-from dsketch.raster.composite import softor
+from dsketch.raster.composite import softor, over
 from dsketch.raster.raster import exp, nearest_neighbour, compute_nearest_neighbour_sigma_bres
 from torchbearer.callbacks import decorators as callbacks
 
@@ -92,9 +92,6 @@ class Decoder(_Base, ABC):
 
     
 class ColourDecoder(Decoder, ABC):
-#     def __init__(self, args):
-#         super().__init__()
-#         self.args = args
 
     @abstractmethod
     def decode_to_params(self, inp):
@@ -129,39 +126,16 @@ class ColourDecoder(Decoder, ABC):
         params = self.decode_to_params(inp)
         sigma2 = self.get_sigma2(params)
         edt2 = self.create_edt2(params)  # [bs, nprim, row, col]
-#         print("initial edt2")
-#         print(edt2.shape)
-        
-        #added by me to colour each line independently
+        edt2 = exp(edt2, sigma2)
+
         edt2 = edt2.unsqueeze(2)  # [bs, nprim, 1, row, col]
         edt2 = edt2.repeat_interleave(3, dim=2)  # [bs, nprim, 3, row, col]
-#         print(edt2.shape)
         
         rgb_values=self.decode_to_colour(inp) # [bs, nprim, 3]
-#         print("rgbval here")
-#         print(rgb_values.shape) 
         rgb=rgb_values.unsqueeze(-1).unsqueeze(-1) # [bs, nprim, 3, 1, 1]
-#         print(rgb.shape)
         
         edt2 = rgb * edt2  # [bs, nprim, 3, row, col]
-#         print("edt again")
-#         print(edt2.shape)
-        
-        images = self.raster_soft(edt2, sigma2) # [bs, 1, 3, row, col]
-#         print("images shape")
-#         print(images.shape)
-        images = images.squeeze(1) # [bs, 3, row, col]
-#         print(images.shape)
-#         #to add colour method here
-#         rgb_values=self.decode_to_colour(inp)
-# #         print(rgb_values.shape)
-#         rgb=rgb_values.unsqueeze(-1).unsqueeze(-1)
-# #         print(rgb.shape)
-#         images = torch.cat(3 * [images], dim=1)
-# #         print(images.shape)
-# #         images = images * rgb_values
-#         images = rgb * images
-# #         print(images.shape)
+        images = over(edt2, dim=1, keepdim=False)
 
         if state is not None:
             state[metrics.HARDRASTER] = self.raster_hard(edt2)
