@@ -34,7 +34,7 @@ class SinglePassCRSDecoder(AdjustableSigmaMixin, Decoder):
             nn.Linear(hidden2, nlines * npoints * 2),
             nn.Tanh()
         )
-
+        
         self.edt_approx = edt_approx
         self.sigma2 = sigma2
 
@@ -78,7 +78,87 @@ class SinglePassCRSDecoder(AdjustableSigmaMixin, Decoder):
             raise
         return edt2
 
+class SinglePassColouredCRSDecoder(AdjustableSigmaMixin, Decoder):
+    def __init__(self, args, npoints=4, nlines=1, input=64, hidden=64, hidden2=256, sz=28, edt_approx='polyline',
+                 sigma2=1e-2):
+        super().__init__(args)
 
+        # build the coordinate grid:
+        r = torch.linspace(-1, 1, sz)
+        c = torch.linspace(-1, 1, sz)
+        grid = torch.meshgrid(r, c)
+        grid = torch.stack(grid, dim=2)
+        self.register_buffer("grid", grid)
+
+        # this is a list of quads of "connections" 0-1-2-3, 1-2-3-4, 2-3-4-5, ...
+        self.coordpairs = torch.stack([torch.arange(0, npoints - 3, 1),
+                                       torch.arange(1, npoints - 2, 1),
+                                       torch.arange(2, npoints - 1, 1),
+                                       torch.arange(3, npoints, 1)], dim=1)
+        self.npoints = npoints
+        self.latent_to_points = nn.Sequential(
+            nn.Linear(input, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden2),
+            nn.ReLU(),
+            nn.Linear(hidden2, nlines * npoints * 2),
+            nn.Tanh()
+        )
+
+        self.latent_to_rgbvalues = nn.Sequential(
+            nn.Linear(input, nlines * 3),
+            nn.Sigmoid()
+        )
+        
+        self.edt_approx = edt_approx
+        self.sigma2 = sigma2
+
+    @staticmethod
+    def _add_args(p):
+        p.add_argument("--npoints", help="number of control points", type=int, default=16, required=False)
+        p.add_argument("--nlines", help="number of independent lines", type=int, default=1, required=False)
+        p.add_argument("--decoder-hidden", help="decoder hidden size", type=int, default=64, required=False)
+        p.add_argument("--decoder-hidden2", help="decoder hidden2 size", type=int, default=256, required=False)
+        p.add_argument("--edt-approximation", help="approximation to use for computing edt", type=str,
+                       default="polyline", required=False, choices=['polyline', 'bruteforce'])
+        AdjustableSigmaMixin._add_args(p)
+
+    @staticmethod
+    def create(args):
+        return SinglePassColouredCRSDecoder(args, npoints=args.npoints, nlines=args.nlines, input=args.latent_size,
+                                    hidden=args.decoder_hidden, hidden2=args.decoder_hidden2, sz=args.size,
+                                    edt_approx=args.edt_approximation, sigma2=args.sigma2)
+
+    def decode_to_params(self, inp):
+        # the latent_to_points process will map the input latent vector to control points for the CRS
+        bs = inp.shape[0]
+        pts = self.latent_to_points(inp)  # [batch, npoints*2]
+        pts = pts.view(bs, -1, self.npoints, 2)  # expand -> [batch, nlines, npoints, 2]
+
+        # compute all valid permutations of line start and end points
+        lines = torch.cat((pts[:, :, self.coordpairs[:, 0]],
+                           pts[:, :, self.coordpairs[:, 1]],
+                           pts[:, :, self.coordpairs[:, 2]],
+                           pts[:, :, self.coordpairs[:, 3]]), dim=-1)  # [batch, nlines, 8]
+
+        lines = lines.view(bs, -1, 4, 2)  # flatten -> [batch, nlines, 4, 2]
+        return lines
+
+    def decode_to_colour(self, inp):
+        bs = inp.shape[0]
+        rgb_values=self.latent_to_rgbvalues(inp) # [batch, nlines*3]
+        rgb_values=rgb_values.view(bs, -1, 3)
+        return rgb_values
+    
+    def create_edt2(self, lines):
+        if self.edt_approx == 'polyline':
+            edt2 = curve_edt2_polyline(lines, self.grid, 10, cfcn=catmull_rom_spline)
+        elif self.edt_approx == 'bruteforce':
+            edt2 = curve_edt2_bruteforce(lines, self.grid, 2, 10, cfcn=catmull_rom_spline)
+        else:
+            raise
+        return edt2
+    
 class SinglePassPolyLineDecoder(AdjustableSigmaMixin, Decoder):
     def __init__(self, args, npoints=8, input=64, hidden=64, hidden2=256, sz=28, sigma2=1e-2):
         super().__init__(args)
