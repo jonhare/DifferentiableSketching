@@ -78,7 +78,7 @@ class SinglePassCRSDecoder(AdjustableSigmaMixin, Decoder):
             raise
         return edt2
 
-class SinglePassColouredCRSDecoder(AdjustableSigmaMixin, Decoder):
+class SinglePassColouredCRSDecoder(AdjustableSigmaMixin, ColourDecoder):
     def __init__(self, args, npoints=4, nlines=1, input=64, hidden=64, hidden2=256, sz=28, edt_approx='polyline',
                  sigma2=1e-2):
         super().__init__(args)
