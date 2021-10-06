@@ -104,9 +104,11 @@ class SinglePassColouredCRSDecoder(AdjustableSigmaMixin, ColourDecoder):
             nn.Linear(hidden2, nlines * npoints * 2),
             nn.Tanh()
         )
+        
 
+        self.nsegments = self.npoints - 3
         self.latent_to_rgbvalues = nn.Sequential(
-            nn.Linear(input, nlines * 3),
+            nn.Linear(input, nlines * self.nsegments * 3),
             nn.Sigmoid()
         )
         
@@ -139,9 +141,9 @@ class SinglePassColouredCRSDecoder(AdjustableSigmaMixin, ColourDecoder):
         lines = torch.cat((pts[:, :, self.coordpairs[:, 0]],
                            pts[:, :, self.coordpairs[:, 1]],
                            pts[:, :, self.coordpairs[:, 2]],
-                           pts[:, :, self.coordpairs[:, 3]]), dim=-1)  # [batch, nlines, 8]
+                           pts[:, :, self.coordpairs[:, 3]]), dim=-1)  # [batch, nlines, nsegments, 8]
 
-        lines = lines.view(bs, -1, 4, 2)  # flatten -> [batch, nlines, 4, 2]
+        lines = lines.view(bs, -1, 4, 2)  # flatten -> [batch, nlines*nsegments, 4, 2]
         return lines
 
     def decode_to_colour(self, inp):
