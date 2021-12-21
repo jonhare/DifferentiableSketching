@@ -23,7 +23,8 @@ class _Loss:
 
     @staticmethod
     def add_args(p):
-        pass
+        p.add_argument("--net", help="network for pips [alex or vgg]", type=str, default='vgg', required=False)
+         
 
     def __call__(self, input, target):
         pass
@@ -32,10 +33,6 @@ class _Loss:
 class MSELoss(_Loss):
     def __init__(self, args):
         super().__init__(args)
-
-    @staticmethod
-    def add_args(p):
-        pass
 
     def __call__(self, input, target):
         if self.imagewise:
@@ -46,10 +43,6 @@ class MSELoss(_Loss):
 class BCELoss(_Loss):
     def __init__(self, args):
         super().__init__(args)
-
-    @staticmethod
-    def add_args(p):
-        pass
 
     def __call__(self, input, target):
         if self.imagewise:
@@ -399,6 +392,7 @@ class BlurredMSELoss(_Loss):
 
     @staticmethod
     def add_args(p):
+        _Loss.add_args(p)
         p.add_argument("--blur-sigma", help="sigma for blurring in loss", type=float, default=1.0, required=False)
         p.add_argument("--no-symmetric", help="disable symmetric mode", action='store_false', required=False)
 
