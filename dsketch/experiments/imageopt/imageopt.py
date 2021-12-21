@@ -384,6 +384,9 @@ def add_shared_args(parser):
                         help="colour learning rate (defaults to --lr if not set)")
     parser.add_argument("--restarts", action='store_true', required=False, default=False,
                         help="reinit params if sigma2 becomes too small")
+    parser.add_argument("--net", type=str, required=False, default="vgg",
+                        help="neural network model")
+
 
 
 def main():
@@ -478,4 +481,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
