@@ -28,7 +28,7 @@ We demonstrate that it is possible to perform gradient descent directly through 
 
 ### Installation
 
-Clone the source, then from the source directory install the dependencies (`pip -r requirements.txt`) and run `python setup.py install` to install the library and commandline tools.
+Clone the source, then from the source directory install the dependencies (`pip install -r requirements.txt`) and run `python setup.py install` to install the library and commandline tools.
 
 ### Demonstration Notebooks
 
