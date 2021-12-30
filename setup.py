@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='DifferentiableSketching',
     version='0.0.1',
-    packages=['dsketch'],
+    packages=['dsketch', 'dsketch.losses', 'dsketch.utils', 'dsketch.raster', 'dsketch.models', 'dsketch.datasets', 'dsketch.experiments.shared', 'dsketch.experiments', 'dsketch.experiments.imageopt', 'dsketch.experiments.characters', 'dsketch.experiments.characters.models'],
     url='github.com/jonhare/DifferentiableSketching',
     license='BSD 3-Clause',
     author='Jonathon Hare <jsh2@soton.ac.uk>, Daniela Mihai <adm1g15@soton.ac.uk>',
