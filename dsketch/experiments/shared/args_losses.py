@@ -442,6 +442,7 @@ class AugConsistencyLoss(_Loss):
             transforms.RandomResizedCrop(224, scale=(0.7, 0.9))])
 
         self.num_augs = args.num_augs
+        self.invert = args.invert_sketch
 
 
     @staticmethod
