@@ -432,7 +432,7 @@ class AugConsistencyLoss(_Loss):
 
         if args.net == 'ViT':
             import clip
-            self.model, self.preprocess = clip.load('ViT-B/32', device, jit=False)
+            self.model, self.preprocess = clip.load('ViT-B/32', args.device, jit=False)
         else:
             self.net = models.vgg16(pretrained=True).features
             self.preprocess = IMAGENET_NORM
