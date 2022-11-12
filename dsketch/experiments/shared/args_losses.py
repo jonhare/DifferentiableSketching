@@ -458,7 +458,7 @@ class AugConsistencyLoss(_Loss):
         if self.invert:
             input = 1 - input
 
-        target = self.preprocess(target).unsqueeze(0)
+        target = self.preprocess(target)
         target_features = self.model(target).view(1, -1)
         target_features = target_features.expand(self.num_augs, -1)
 
