@@ -436,7 +436,7 @@ class AugConsistencyLoss(_Loss):
             self.model = self.model.encode_image
             self.preprocess = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
         else:
-            self.net = models.vgg16(pretrained=True).features
+            self.model = models.vgg16(pretrained=True).features
             self.preprocess = IMAGENET_NORM
 
         self.augment_trans = transforms.Compose([
