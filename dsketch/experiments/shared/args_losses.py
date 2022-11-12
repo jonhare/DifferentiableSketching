@@ -423,6 +423,52 @@ class DoGPyrMSELoss(PyrMSELoss):
         p.add_argument("--downsample", help="enable pyramid mode", action='store_true', required=False)
 
 
+class AugConsistencyLoss(_Loss):
+    """
+    Augmentation consistency loss based on the idea in CLIPDraw (https://github.com/kvfrans/clipdraw/blob/main/clipdraw.ipynb)
+    """
+    def __init__(self, args):
+        super().__init__(args)
+
+        if args.net == 'ViT':
+            import clip
+            self.model, self.preprocess = clip.load('ViT-B/32', device, jit=False)
+        else:
+            self.net = models.vgg16(pretrained=True).features
+            self.preprocess = IMAGENET_NORM
+
+        self.augment_trans = transforms.Compose([
+            transforms.RandomPerspective(fill=1, p=1, distortion_scale=0.5),
+            transforms.RandomResizedCrop(224, scale=(0.7, 0.9))])
+
+        self.num_augs = args.num_augs
+
+
+    @staticmethod
+    def add_args(p):
+        p.add_argument("--net", help="network [vgg16 or ViT]", type=str, default='ViT', required=False)
+        p.add_argument("--num-augs", help="number of augmentations", type=int, default=4, required=False)
+        p.add_argument("--invert-sketch", action='store_true', required=False,
+                       help="should the sketch be inverted before loss is computed?")
+
+    def __call__(self, input, target):
+        if self.invert:
+            input = 1 - input
+
+        target = self.preprocess(target).unsqueeze(0)
+        target_features = model.encode_image(target).view(1, -1)
+        target_features = target_features.expand(self.num_augs, -1)
+
+        img_augs = []
+        for n in range(self.num_augs):
+            img_augs.append(self.preprocess(self.augment_trans(input)))
+        im_batch = torch.cat(img_augs)
+
+        image_features = model.encode_image(im_batch).view(self.num_augs, -1)
+        loss = -1 * torch.cosine_similarity(target_features, image_features, dim=1).mean()
+
+        return loss
+
 def get_loss(name):
     los = getattr(sys.modules[__name__], name)
     if not issubclass(los, _Loss):
