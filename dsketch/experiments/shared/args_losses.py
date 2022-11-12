@@ -433,6 +433,7 @@ class AugConsistencyLoss(_Loss):
         if args.net == 'ViT':
             import clip
             self.model, _ = clip.load('ViT-B/32', args.device, jit=False)
+            self.model = self.model.encode_image
             self.preprocess = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
         else:
             self.net = models.vgg16(pretrained=True).features
@@ -458,7 +459,7 @@ class AugConsistencyLoss(_Loss):
             input = 1 - input
 
         target = self.preprocess(target).unsqueeze(0)
-        target_features = model.encode_image(target).view(1, -1)
+        target_features = self.model(target).view(1, -1)
         target_features = target_features.expand(self.num_augs, -1)
 
         img_augs = []
@@ -466,7 +467,7 @@ class AugConsistencyLoss(_Loss):
             img_augs.append(self.preprocess(self.augment_trans(input)))
         im_batch = torch.cat(img_augs)
 
-        image_features = model.encode_image(im_batch).view(self.num_augs, -1)
+        image_features = self.model(im_batch).view(self.num_augs, -1)
         loss = -1 * torch.cosine_similarity(target_features, image_features, dim=1).mean()
 
         return loss
