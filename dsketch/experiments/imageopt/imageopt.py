@@ -404,7 +404,7 @@ def main():
         basewidth = args.width
         wpercent = (basewidth / float(target.size[0]))
         hsize = int((float(target.size[1]) * float(wpercent)))
-        target = target.resize((basewidth, hsize), Image.ANTIALIAS)
+        target = target.resize((basewidth, hsize), Image.LANCZOS)
 
     if args.colour:
         args.channels = 3
